@@ -1,0 +1,17 @@
+# Go
+/bin/
+/pkg/
+*.exe
+*.out
+*.test
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Env
+.env
+
+# Dependency tools
+vendor/
