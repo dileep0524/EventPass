@@ -20,7 +20,6 @@ func InitPostgres() error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
-
 	DB = pool
 	return nil
 }
