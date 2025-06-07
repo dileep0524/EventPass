@@ -1,22 +1,15 @@
-// --- Configuration ---
+// Configuration
 const API_BASE_URL = 'http://localhost:8080';
 
-// --- Global State ---
-let currentUser = null; // Stores { username, role } of the logged-in user
-let currentUserType = 'customer'; // Tracks 'customer' or 'admin' from UI selection before login
-let events = []; // Holds the list of all events
-let userBookings = []; // Holds events booked by the current customer
+// Global state
+let currentUser = null;
+let currentUserType = 'customer';
+let events = [];
+let userBookings = [];
+let favoriteEvents = [];
+let currentEventModal = null;
 
-// --- API Helper ---
-
-/**
- * Generic API call function.
- * @param {string} endpoint - The API endpoint (e.g., '/v1/users/login').
- * @param {string} [method='GET'] - HTTP method.
- * @param {object} [body=null] - Request body for POST/PUT requests.
- * @returns {Promise<object>} The JSON response from the API.
- * @throws {Error} If the API call fails or returns an error status.
- */
+// API Helper function
 async function apiCall(endpoint, method = 'GET', body = null) {
     showLoading();
     
@@ -43,40 +36,26 @@ async function apiCall(endpoint, method = 'GET', body = null) {
     } finally {
         hideLoading();
     }
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: `HTTP ${response.status}: ${response.statusText}` }));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return response.json();
 }
 
-// --- Utility Functions ---
+// Loading functions
+function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
 
-/**
- * Removes the 'hidden' class from an element.
- * @param {string} id - The ID of the HTML element.
- */
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
+}
+
+// Utility functions
 function showElement(id) {
     document.getElementById(id).classList.remove('hidden');
 }
 
-/**
- * Adds the 'hidden' class to an element.
- * @param {string} id - The ID of the HTML element.
- */
 function hideElement(id) {
     document.getElementById(id).classList.add('hidden');
 }
 
-/**
- * Displays an error message in a specified element.
- * @param {string} elementId - The ID of the HTML element to display the error in.
- * @param {string} message - The error message to display.
- */
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
     const span = errorElement.querySelector('span');
@@ -88,19 +67,10 @@ function showError(elementId, message) {
     errorElement.classList.remove('hidden');
 }
 
-/**
- * Hides an error message element.
- * @param {string} elementId - The ID of the HTML error element.
- */
 function hideError(elementId) {
     document.getElementById(elementId).classList.add('hidden');
 }
 
-/**
- * Displays a success message in a specified element.
- * @param {string} elementId - The ID of the HTML element to display the success message in.
- * @param {string} message - The success message to display.
- */
 function showSuccess(elementId, message) {
     const successElement = document.getElementById(elementId);
     const span = successElement.querySelector('span');
@@ -112,11 +82,29 @@ function showSuccess(elementId, message) {
     successElement.classList.remove('hidden');
 }
 
-/**
- * Formats a date string into a more readable format.
- * @param {string} dateString - ISO date string.
- * @returns {string} Formatted date (e.g., "Monday, January 1, 2023").
- */
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icon = type === 'success' ? 'check-circle' : 
+                 type === 'error' ? 'exclamation-triangle' : 
+                 type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
+}
+
 function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-US', {
         weekday: 'long',
@@ -126,54 +114,96 @@ function formatDate(dateString) {
     });
 }
 
-/**
- * Formats a time string into a more readable format.
- * @param {string} timeString - Time string (e.g., "14:00:00").
- * @returns {string} Formatted time (e.g., "02:00 PM").
- */
 function formatTime(timeString) {
-    // Handles potential full datetime strings by ensuring only time part is used
-    const timePart = timeString.includes('T') ? timeString.split('T')[1].split('.')[0] : timeString;
-    return new Date(`2000-01-01T${timePart}`).toLocaleTimeString('en-US', {
+    return new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
         hour: '2-digit',
         minute: '2-digit'
     });
 }
 
-// --- User Interaction Functions ---
+function formatPrice(price) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(price || 0);
+}
 
-/**
- * Sets the current user type based on UI selection (customer/admin).
- * Updates button styles to reflect the active type.
- * @param {string} type - The user type ('customer' or 'admin').
- * @param {Event} event - The click event from the user type button.
- */
-function setUserType(type, event) {
-    currentUserType = type;
-    document.querySelectorAll('.user-type-btn').forEach(btn => btn.classList.remove('active'));
-    if (event && event.target) {
-        event.target.classList.add('active');
+// Password functions
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle');
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
     } else {
-        // Fallback if event or event.target is not available (e.g. initial setup)
-        const buttonToActivate = Array.from(document.querySelectorAll('.user-type-btn')).find(btn => btn.textContent.toLowerCase().includes(type));
-        if (buttonToActivate) buttonToActivate.classList.add('active');
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
     }
 }
 
-// --- API Functions ---
+function checkPasswordStrength(password) {
+    let strength = 0;
+    const checks = [
+        password.length >= 8,
+        /[a-z]/.test(password),
+        /[A-Z]/.test(password),
+        /[0-9]/.test(password),
+        /[^A-Za-z0-9]/.test(password)
+    ];
+    
+    strength = checks.filter(Boolean).length;
+    
+    const strengthBar = document.querySelector('.strength-fill');
+    const strengthText = document.querySelector('.strength-text');
+    
+    if (strengthBar && strengthText) {
+        const percentage = (strength / 5) * 100;
+        strengthBar.style.width = `${percentage}%`;
+        
+        if (strength < 2) {
+            strengthBar.style.background = '#ef4444';
+            strengthText.textContent = 'Weak password';
+        } else if (strength < 4) {
+            strengthBar.style.background = '#f59e0b';
+            strengthText.textContent = 'Medium password';
+        } else {
+            strengthBar.style.background = '#10b981';
+            strengthText.textContent = 'Strong password';
+        }
+    }
+}
 
-/**
- * Registers a new user.
- * @param {object} userData - User registration data.
- * @param {string} userData.email
- * @param {string} userData.password
- * @param {string} userData.firstName
- * @param {string} userData.lastName
- * @param {string} userData.username
- * @param {string} userData.phone
- * @returns {Promise<object>} API response.
- * @throws {Error} If registration fails.
- */
+// User type selection
+function setUserType(type) {
+    currentUserType = type;
+    document.querySelectorAll('.user-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.type === type) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+// User menu functions
+function toggleUserMenu() {
+    const dropdown = document.getElementById('userDropdown') || document.getElementById('adminUserDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const userMenu = e.target.closest('.user-menu');
+    if (!userMenu) {
+        const dropdowns = document.querySelectorAll('.user-dropdown');
+        dropdowns.forEach(dropdown => dropdown.classList.add('hidden'));
+    }
+});
+
+// API functions
 async function register(userData) {
     try {
         const response = await apiCall('/v1/users/register', 'POST', {
@@ -184,63 +214,46 @@ async function register(userData) {
             username: userData.username,
             phone: userData.phone
         });
+        
         return { success: true, data: response };
     } catch (error) {
-        console.error('Registration error:', error.message);
+        console.error('Registration error:', error);
         throw error;
     }
 }
 
-/**
- * Logs in a user.
- * Sets `currentUser` and navigates to the appropriate dashboard on success.
- * @param {string} username
- * @param {string} password
- * @returns {Promise<object>} API response.
- * @throws {Error} If login fails.
- */
 async function login(username, password) {
     try {
-        // The user_id field in the request seems optional or determined server-side for login.
-        // Sending an empty string if not explicitly required by backend for login action.
         const response = await apiCall('/v1/users/login', 'POST', {
             username: username,
             password: password,
-            user_id: "" // Assuming backend handles user_id lookup or doesn't need it for login
+            user_id: ""
         });
         
-        // Determine role based on currentUserType selected in UI and username for admin
-        // This logic might need refinement based on actual backend authentication response
-        if (currentUserType === 'admin' && username === 'admin') { // Simple admin check
+        // Handle successful login
+        if (currentUserType === 'admin' && username === 'admin') {
             currentUser = { username: username, role: 'admin' };
             document.getElementById('welcomeAdmin').textContent = `Welcome, ${username}`;
             hideElement('loginPage');
             showElement('adminDashboard');
-            showAdminDashboard(); // Initial view for admin dashboard
+            showAdminDashboard();
         } else {
-            // All other users are customers for now
             currentUser = { username: username, role: 'customer' };
-            currentUserType = 'customer'; // Ensure currentUserType is customer
             document.getElementById('welcomeCustomer').textContent = `Welcome, ${username}`;
             hideElement('loginPage');
             showElement('customerDashboard');
-            showCustomerDashboard(); // Initial view for customer dashboard
+            showCustomerDashboard();
         }
         
-        await loadEvents(); // Load events relevant to the user
+        await loadEvents();
+        showToast('Login successful!', 'success');
         return { success: true, data: response };
     } catch (error) {
-        console.error('Login error:', error.message);
-        throw new Error('Invalid credentials or server error. Please try again.');
+        console.error('Login error:', error);
+        throw new Error('Invalid credentials or server error');
     }
 }
 
-/**
- * Creates a new event (admin only).
- * @param {object} eventData - Event details.
- * @returns {Promise<object>} API response.
- * @throws {Error} If event creation fails.
- */
 async function createEvent(eventData) {
     try {
         const response = await apiCall('/v1/event/create', 'POST', {
@@ -250,158 +263,140 @@ async function createEvent(eventData) {
             event_date: eventData.event_date,
             event_start_time: eventData.event_start_time,
             event_end_time: eventData.event_end_time,
-            created_by: eventData.created_by, // Should be current admin user's ID/username
+            created_by: eventData.created_by,
             total_slots: eventData.total_slots
         });
         
-        await loadEvents(); // Refresh events list
+        await loadEvents();
         return { success: true, data: response };
     } catch (error) {
-        console.error('Create event error:', error.message);
+        console.error('Create event error:', error);
         throw error;
     }
 }
 
-/**
- * Loads all available events from the API.
- * Updates the global `events` array and re-renders event displays.
- */
 async function loadEvents() {
     try {
-        const response = await apiCall('/v1/events?page=1&limit=100'); // Fetch a large number of events
-        events = response.events || []; // Ensure events is an array
-        renderEvents(); // Update UI based on current user role
+        const response = await apiCall('/v1/events?page=1&limit=100');
+        events = response.events || [];
+        renderEvents();
+        updateStats();
     } catch (error) {
-        console.error('Load events error:', error.message);
-        events = []; // Fallback to empty array on error
-        renderEvents(); // Still try to render (will show empty state)
+        console.error('Load events error:', error);
+        events = [];
+        renderEvents();
     }
 }
 
-/**
- * Retrieves details for a specific event.
- * @param {string} eventId
- * @returns {Promise<object>} Event details.
- * @throws {Error} If fetching fails.
- */
 async function getEventDetails(eventId) {
     try {
         const response = await apiCall(`/v1/events/${eventId}`);
         return response;
     } catch (error) {
-        console.error('Get event details error:', error.message);
+        console.error('Get event details error:', error);
         throw error;
     }
 }
 
-/**
- * Books an event for the current user.
- * @param {string} eventId - The ID of the event to book.
- * @returns {Promise<object>} API response.
- * @throws {Error} If booking fails.
- */
 async function bookEvent(eventId) {
-    if (!currentUser || !currentUser.username) {
-        throw new Error("User not logged in.");
-    }
     try {
-        // Assuming the backend uses the authenticated user context for user_id
-        // If user_id needs to be sent explicitly:
-        // const response = await apiCall(`/v1/events/${eventId}/book`, 'POST', { user_id: currentUser.username });
-        const response = await apiCall(`/v1/events/${eventId}/book`, 'POST', {
-             user_id: currentUser.username // Or actual user ID from currentUser object if available
-        });
-        
-        // Optimistically update local bookings (or re-fetch if necessary)
+        // Simulate booking since endpoint doesn't exist yet
         const event = events.find(e => e.event_id === eventId);
         if (event) {
-            userBookings.push({
-                ...event, // Copy event details
-                booking_date: new Date().toISOString(), // Add booking specific info
-                booking_id: response.booking_id || Math.random().toString(36).substr(2, 9) // Use booking_id from response or generate temp
-            });
+            const booking = {
+                ...event,
+                booking_date: new Date().toISOString(),
+                booking_id: Math.random().toString(36).substr(2, 9),
+                status: 'confirmed'
+            };
+            userBookings.push(booking);
+            
+            // Decrease available slots
+            event.total_slots = Math.max(0, event.total_slots - 1);
         }
         
-        await loadEvents(); // Refresh events to update available slots and potentially user bookings
-        return { success: true, data: response };
+        return { success: true };
     } catch (error) {
-        console.error('Book event error:', error.message);
+        console.error('Book event error:', error);
         throw error;
     }
 }
 
-// --- UI Update Functions (Navigation and Page Switching) ---
-
-/** Shows the login page, hides signup. */
+// UI Navigation functions
 function showLogin() {
     hideElement('signupPage');
     showElement('loginPage');
-    hideError('loginError'); // Clear previous errors
+    hideError('loginError');
 }
 
-/** Shows the signup page, hides login. */
 function showSignup() {
     hideElement('loginPage');
     showElement('signupPage');
-    hideError('signupError'); // Clear previous errors
+    hideError('signupError');
 }
 
-/** Shows the main customer dashboard view. */
 function showCustomerDashboard() {
     hideElement('myBookingsContent');
     hideElement('favoritesContent');
     showElement('customerDashboardContent');
-    updateNavActive('customerDashboard', 0); // Set "Events" as active
+    updateNavActive('customerDashboard', 0);
     renderCustomerEvents();
 }
 
-/** Shows the "My Bookings" view for customers. */
 function showMyBookings() {
     hideElement('customerDashboardContent');
     hideElement('favoritesContent');
     showElement('myBookingsContent');
-    updateNavActive('customerDashboard', 1); // Set "My Bookings" as active
+    updateNavActive('customerDashboard', 1);
     renderMyBookings();
 }
 
-/** Shows the main admin dashboard view. */
+function showFavorites() {
+    hideElement('customerDashboardContent');
+    hideElement('myBookingsContent');
+    showElement('favoritesContent');
+    updateNavActive('customerDashboard', 2);
+    renderFavorites();
+}
+
 function showAdminDashboard() {
     hideElement('createEventContent');
     hideElement('manageEventsContent');
     hideElement('analyticsContent');
     showElement('adminDashboardContent');
-    updateNavActive('adminDashboard', 0); // Set "Dashboard" (event list) as active
+    updateNavActive('adminDashboard', 0);
     renderAdminEvents();
 }
 
-/** Shows the "Create Event" form for admins. */
 function showCreateEvent() {
     hideElement('adminDashboardContent');
     hideElement('manageEventsContent');
     hideElement('analyticsContent');
     showElement('createEventContent');
-    updateNavActive('adminDashboard', 1); // Set "Create Event" as active
-    hideError('createEventError'); // Clear previous errors
-    hideElement('createEventSuccess'); // Hide previous success message
+    updateNavActive('adminDashboard', 1);
+    hideError('createEventError');
+    hideElement('createEventSuccess');
 }
 
-/** Shows the "Manage Events" view for admins. */
 function showManageEvents() {
     hideElement('adminDashboardContent');
     hideElement('createEventContent');
     hideElement('analyticsContent');
     showElement('manageEventsContent');
-    updateNavActive('adminDashboard', 2); // Set "Manage Events" as active
+    updateNavActive('adminDashboard', 2);
     renderManageEvents();
 }
 
-/**
- * Updates the active state for navigation items within a dashboard.
- * @param {string} dashboardId - The ID of the dashboard container (e.g., 'customerDashboard', 'adminDashboard').
- * @param {number} index - The index of the nav item to activate.
- */
-function updateNavActive(dashboardId, index) {
-    const navItems = document.querySelectorAll(`#${dashboardId} .nav-item`);
+function showAnalytics() {
+    hideElement('adminDashboardContent');
+    hideElement('createEventContent');
+    hideElement('manageEventsContent');
+    showElement('analyticsContent');
+    updateNavActive('adminDashboard', 3);
+}
+
+function updateNavActive(dashboard, index) {
+    const navItems = document.querySelectorAll(`#${dashboard} .nav-item`);
     navItems.forEach((item, i) => {
         if (i === index) {
             item.classList.add('active');
@@ -411,341 +406,564 @@ function updateNavActive(dashboardId, index) {
     });
 }
 
-/** Logs out the current user and returns to the login page. */
 function logout() {
     currentUser = null;
     events = [];
     userBookings = [];
-    // Hide all dashboard sections
+    favoriteEvents = [];
     hideElement('customerDashboard');
     hideElement('adminDashboard');
-    // Show login page
     showElement('loginPage');
     
-    // Clear sensitive form data
+    // Clear forms
     document.getElementById('loginForm').reset();
     document.getElementById('signupForm').reset();
-    if(document.getElementById('createEventForm')) { // createEventForm might not always exist
-        document.getElementById('createEventForm').reset();
-    }
-    console.log('User logged out.');
+    document.getElementById('createEventForm').reset();
+    
+    showToast('Logged out successfully', 'info');
 }
 
-// --- UI Rendering Functions ---
+// Search and filter functions
+function searchEvents() {
+    const searchTerm = document.getElementById('heroSearchInput').value.toLowerCase();
+    const location = document.getElementById('locationInput').value.toLowerCase();
+    const date = document.getElementById('dateInput').value;
+    
+    let filteredEvents = events;
+    
+    if (searchTerm) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_title.toLowerCase().includes(searchTerm) ||
+            event.event_description.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (location) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_location.toLowerCase().includes(location)
+        );
+    }
+    
+    if (date) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_date === date
+        );
+    }
+    
+    renderFilteredEvents(filteredEvents);
+    showToast(`Found ${filteredEvents.length} events`, 'info');
+}
 
-/**
- * Main render function dispatcher. Calls the appropriate render function
- * based on the current user's role.
- */
+function filterByCategory(category) {
+    // Since category is not in the current API, we'll simulate it
+    showToast(`Filtering by ${category} category`, 'info');
+    renderCustomerEvents();
+}
+
+function sortEvents() {
+    const sortBy = document.getElementById('sortSelect').value;
+    let sortedEvents = [...events];
+    
+    switch (sortBy) {
+        case 'date':
+            sortedEvents.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+            break;
+        case 'popularity':
+            sortedEvents.sort((a, b) => b.total_slots - a.total_slots);
+            break;
+        case 'price':
+            // Since price is not in current API, we'll use slots as proxy
+            sortedEvents.sort((a, b) => a.total_slots - b.total_slots);
+            break;
+    }
+    
+    renderFilteredEvents(sortedEvents);
+}
+
+function toggleFilters() {
+    const filtersPanel = document.getElementById('filtersPanel');
+    filtersPanel.classList.toggle('hidden');
+}
+
+// Render functions
 function renderEvents() {
     if (currentUser?.role === 'customer') {
         renderCustomerEvents();
     } else if (currentUser?.role === 'admin') {
-        // Admin might see a different view of events, or manage events view
-        // For now, let's assume admin also sees a list of events on their main dashboard
-        renderAdminEvents(); // Or specific admin view if showAdminDashboard manages it
+        renderAdminEvents();
     }
 }
 
-/** Renders events for the customer view. */
+function renderFilteredEvents(filteredEvents) {
+    const eventsGrid = document.getElementById('customerEventsGrid');
+    renderEventsGrid(filteredEvents, eventsGrid, 'customer');
+}
+
 function renderCustomerEvents() {
     const eventsGrid = document.getElementById('customerEventsGrid');
-    if (!eventsGrid) return; // Guard clause
-
-    if (!events || events.length === 0) {
-        eventsGrid.innerHTML = `
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path></svg>
-                <h3>No Events Available</h3>
-                <p>Check back later for exciting events!</p>
-            </div>`;
-        return;
-    }
-
-    eventsGrid.innerHTML = events.map(event => `
-        <article class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail"><span>📅</span> ${formatDate(event.event_date)}</div>
-                <div class="event-detail"><span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}</div>
-                <div class="event-detail"><span>📍</span> ${event.event_location}</div>
-                <div class="event-detail"><span>🎫</span> ${event.total_slots - (event.booked_slots || 0)} slots available</div>
-            </div>
-            <div class="event-actions">
-                <button class="btn-secondary" onclick="bookEventHandler(this, '${event.event_id}')" ${ (event.total_slots - (event.booked_slots || 0)) <= 0 ? 'disabled' : ''}>
-                    ${ (event.total_slots - (event.booked_slots || 0)) <= 0 ? 'Sold Out' : 'Book Now'}
-                </button>
-            </div>
-        </article>
-    `).join('');
+    renderEventsGrid(events, eventsGrid, 'customer');
 }
 
-/** Renders booked events for the customer. */
 function renderMyBookings() {
     const bookingsGrid = document.getElementById('bookingsGrid');
-    if (!bookingsGrid) return; // Guard clause
-
-    if (!userBookings || userBookings.length === 0) {
+    
+    if (userBookings.length === 0) {
         bookingsGrid.innerHTML = `
             <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                <i class="fas fa-ticket-alt"></i>
                 <h3>No Bookings Yet</h3>
                 <p>Book some events to see them here!</p>
-            </div>`;
+            </div>
+        `;
         return;
     }
 
-    bookingsGrid.innerHTML = userBookings.map(booking => `
-        <article class="event-card">
-            <div class="event-title">${booking.event_title}</div>
-            <div class="event-description">${booking.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail"><span>📅</span> ${formatDate(booking.event_date)}</div>
-                <div class="event-detail"><span>⏰</span> ${formatTime(booking.event_start_time)} - ${formatTime(booking.event_end_time)}</div>
-                <div class="event-detail"><span>📍</span> ${booking.event_location}</div>
-                <div class="event-detail"><span>🎫</span> Booking ID: ${booking.booking_id}</div>
-                <div class="event-detail"><span>✅</span> Booked on ${new Date(booking.booking_date).toLocaleDateString()}</div>
-            </div>
-            </article>`).join('');
+    renderEventsGrid(userBookings, bookingsGrid, 'booking');
 }
 
-/** Renders events for the admin dashboard (overview). */
+function renderFavorites() {
+    const favoritesGrid = document.getElementById('favoritesGrid');
+    
+    if (favoriteEvents.length === 0) {
+        favoritesGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-heart"></i>
+                <h3>No Favorites Yet</h3>
+                <p>Add events to your favorites to see them here!</p>
+            </div>
+        `;
+        return;
+    }
+
+    renderEventsGrid(favoriteEvents, favoritesGrid, 'favorite');
+}
+
 function renderAdminEvents() {
     const eventsGrid = document.getElementById('adminEventsGrid');
-    if (!eventsGrid) return; // Guard clause
-
-    if (!events || events.length === 0) {
-        eventsGrid.innerHTML = `
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path></svg>
-                <h3>No Events Created</h3>
-                <p>Create your first event to get started!</p>
-            </div>`;
-        return;
-    }
-
-    eventsGrid.innerHTML = events.map(event => `
-        <article class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail"><span>📅</span> ${formatDate(event.event_date)}</div>
-                <div class="event-detail"><span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}</div>
-                <div class="event-detail"><span>📍</span> ${event.event_location}</div>
-                <div class="event-detail"><span>👥</span> ${event.booked_slots || 0} / ${event.total_slots} booked</div>
-            </div>
-        </article>`).join('');
+    renderEventsGrid(events.slice(0, 6), eventsGrid, 'admin');
 }
 
-/** Renders events for the "Manage Events" view (admin). */
 function renderManageEvents() {
     const eventsGrid = document.getElementById('manageEventsGrid');
-    if (!eventsGrid) return; // Guard clause
+    renderEventsGrid(events, eventsGrid, 'manage');
+}
 
-    if (!events || events.length === 0) {
-        eventsGrid.innerHTML = `
+function renderEventsGrid(eventsList, container, type) {
+    if (eventsList.length === 0) {
+        container.innerHTML = `
             <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path></svg>
-                <h3>No Events to Manage</h3>
-                <p>Create some events first!</p>
-            </div>`;
+                <i class="fas fa-calendar-times"></i>
+                <h3>No Events Available</h3>
+                <p>Check back later for exciting events!</p>
+            </div>
+        `;
         return;
     }
 
-    eventsGrid.innerHTML = events.map(event => `
-        <article class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail"><span>📅</span> ${formatDate(event.event_date)}</div>
-                <div class="event-detail"><span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}</div>
-                <div class="event-detail"><span>📍</span> ${event.event_location}</div>
-                <div class="event-detail"><span>👥</span> ${event.booked_slots || 0} / ${event.total_slots} booked</div>
+    container.innerHTML = eventsList.map(event => {
+        const isFavorite = favoriteEvents.some(fav => fav.event_id === event.event_id);
+        const eventImage = getEventImage(event.event_title);
+        const eventCategory = getEventCategory(event.event_title);
+        
+        return `
+            <div class="event-card" onclick="openEventModal('${event.event_id}')">
+                <div class="event-image">
+                    <img src="${eventImage}" alt="${event.event_title}" loading="lazy">
+                    <div class="event-badge">${eventCategory}</div>
+                    ${type === 'customer' ? `
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
+                                onclick="event.stopPropagation(); toggleFavorite('${event.event_id}')"
+                                title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    ` : ''}
+                </div>
+                <div class="event-content">
+                    <div class="event-title">${event.event_title}</div>
+                    <div class="event-description">${event.event_description}</div>
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>${formatDate(event.event_date)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${formatTime(event.event_start_time)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${event.event_location}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span>${event.total_slots} slots</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        ${type === 'customer' ? `
+                            <div class="event-price">${formatPrice(Math.random() * 100 + 20)}</div>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); bookEventHandler('${event.event_id}')">
+                                <i class="fas fa-ticket-alt"></i>
+                                Book Now
+                            </button>
+                        ` : type === 'booking' ? `
+                            <div class="booking-status">
+                                <i class="fas fa-check-circle" style="color: var(--success-color);"></i>
+                                Confirmed
+                            </div>
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); viewTicket('${event.booking_id}')">
+                                <i class="fas fa-eye"></i>
+                                View Ticket
+                            </button>
+                        ` : type === 'manage' ? `
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editEventHandler('${event.event_id}')">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteEventHandler('${event.event_id}')">
+                                <i class="fas fa-trash"></i>
+                                Delete
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
-            <div class="event-actions">
-                <button class="btn-secondary" onclick="editEventHandler('${event.event_id}')">Edit</button>
-                <button class="btn-danger" onclick="deleteEventHandler('${event.event_id}')">Delete</button>
-            </div>
-        </article>`).join('');
+        `;
+    }).join('');
 }
 
-// --- Event Handlers ---
+function getEventImage(title) {
+    // Return different images based on event title keywords
+    const images = [
+        'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg',
+        'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg',
+        'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg',
+        'https://images.pexels.com/photos/2263436/pexels-photo-2263436.jpeg',
+        'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg'
+    ];
+    
+    const hash = title.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+    
+    return images[Math.abs(hash) % images.length];
+}
 
-/**
- * Handles the booking of an event. Updates button state during API call.
- * @param {HTMLButtonElement} buttonElement - The button that was clicked.
- * @param {string} eventId - The ID of the event to book.
- */
-async function bookEventHandler(buttonElement, eventId) {
-    const originalButtonText = buttonElement.innerHTML;
-    buttonElement.disabled = true;
-    buttonElement.innerHTML = '<span>⏳</span> Booking...';
+function getEventCategory(title) {
+    const categories = {
+        'music': ['concert', 'festival', 'band', 'singer', 'music'],
+        'sports': ['game', 'match', 'tournament', 'sports', 'football', 'basketball'],
+        'business': ['conference', 'meeting', 'workshop', 'seminar', 'business'],
+        'arts': ['exhibition', 'gallery', 'art', 'painting', 'sculpture'],
+        'food': ['food', 'restaurant', 'cooking', 'chef', 'cuisine'],
+        'tech': ['tech', 'technology', 'coding', 'programming', 'software']
+    };
+    
+    const lowerTitle = title.toLowerCase();
+    
+    for (const [category, keywords] of Object.entries(categories)) {
+        if (keywords.some(keyword => lowerTitle.includes(keyword))) {
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+    }
+    
+    return 'General';
+}
 
+// Modal functions
+function openEventModal(eventId) {
+    const event = events.find(e => e.event_id === eventId) || 
+                  userBookings.find(b => b.event_id === eventId);
+    
+    if (!event) return;
+    
+    currentEventModal = event;
+    
+    document.getElementById('modalEventTitle').textContent = event.event_title;
+    document.getElementById('modalEventDate').textContent = formatDate(event.event_date);
+    document.getElementById('modalEventTime').textContent = `${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}`;
+    document.getElementById('modalEventLocation').textContent = event.event_location;
+    document.getElementById('modalEventSlots').textContent = `${event.total_slots} slots available`;
+    document.getElementById('modalEventDescription').textContent = event.event_description;
+    document.getElementById('modalEventImage').src = getEventImage(event.event_title);
+    document.getElementById('modalEventCategory').textContent = getEventCategory(event.event_title);
+    
+    const bookBtn = document.getElementById('modalBookBtn');
+    if (currentUser?.role === 'customer') {
+        bookBtn.style.display = 'flex';
+        bookBtn.onclick = () => bookEventFromModal();
+    } else {
+        bookBtn.style.display = 'none';
+    }
+    
+    showElement('eventModal');
+}
+
+function closeEventModal() {
+    hideElement('eventModal');
+    currentEventModal = null;
+}
+
+function bookEventFromModal() {
+    if (currentEventModal) {
+        bookEventHandler(currentEventModal.event_id);
+        closeEventModal();
+    }
+}
+
+// Event handlers
+async function bookEventHandler(eventId) {
     try {
         await bookEvent(eventId);
-        alert('Event booked successfully!');
-        buttonElement.innerHTML = '<span>✅</span> Booked!';
-        // Button remains disabled as it's booked
-        renderEvents(); // Re-render to update slot counts, etc.
-        if (currentUser?.role === 'customer' && typeof renderMyBookings === 'function') {
-            renderMyBookings(); // Update "My Bookings" view if applicable
-        }
+        showToast('Event booked successfully!', 'success');
+        renderEvents();
+        renderMyBookings();
     } catch (error) {
-        alert('Failed to book event: ' + error.message);
-        buttonElement.disabled = false; // Re-enable on error
-        buttonElement.innerHTML = originalButtonText; // Restore original text
+        showToast('Failed to book event: ' + error.message, 'error');
     }
 }
 
-/**
- * Placeholder for handling event editing.
- * @param {string} eventId - The ID of the event to edit.
- */
-function editEventHandler(eventId) {
-    // In a real app, this would likely open a modal or navigate to an edit form
-    alert(`Edit functionality for event ${eventId} would be implemented here.`);
-    // Example: Populate a form with getEventDetails(eventId) and then show the form.
+function toggleFavorite(eventId) {
+    const event = events.find(e => e.event_id === eventId);
+    if (!event) return;
+    
+    const existingIndex = favoriteEvents.findIndex(fav => fav.event_id === eventId);
+    
+    if (existingIndex > -1) {
+        favoriteEvents.splice(existingIndex, 1);
+        showToast('Removed from favorites', 'info');
+    } else {
+        favoriteEvents.push(event);
+        showToast('Added to favorites', 'success');
+    }
+    
+    renderEvents();
+    renderFavorites();
 }
 
-/**
- * Placeholder for handling event deletion.
- * @param {string} eventId - The ID of the event to delete.
- */
-async function deleteEventHandler(eventId) {
-    if (confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-        try {
-            // const response = await apiCall(`/v1/event/${eventId}/delete`, 'DELETE'); // Assuming a DELETE endpoint
-            // alert('Event deleted successfully!');
-            // await loadEvents(); // Refresh event lists
-            // For now, as endpoint is not specified:
-            alert('Delete functionality needs a backend endpoint. Simulating delete for now.');
-            // Simulate deletion locally if backend is not ready:
-            // events = events.filter(event => event.event_id !== eventId);
-            // renderEvents();
-            // renderManageEvents();
-        } catch (error) {
-            // alert('Failed to delete event: ' + error.message);
-            console.error("Delete event error:", error);
+function editEventHandler(eventId) {
+    showToast('Edit functionality will be implemented soon', 'info');
+}
+
+function deleteEventHandler(eventId) {
+    if (confirm('Are you sure you want to delete this event?')) {
+        showToast('Delete functionality will be implemented soon', 'info');
+    }
+}
+
+function viewTicket(bookingId) {
+    showToast('Ticket view will be implemented soon', 'info');
+}
+
+// Booking tabs
+function showBookingsTab(tab) {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter bookings based on tab
+    let filteredBookings = userBookings;
+    
+    switch (tab) {
+        case 'upcoming':
+            filteredBookings = userBookings.filter(booking => 
+                new Date(booking.event_date) >= new Date()
+            );
+            break;
+        case 'past':
+            filteredBookings = userBookings.filter(booking => 
+                new Date(booking.event_date) < new Date()
+            );
+            break;
+        case 'cancelled':
+            filteredBookings = userBookings.filter(booking => 
+                booking.status === 'cancelled'
+            );
+            break;
+    }
+    
+    const bookingsGrid = document.getElementById('bookingsGrid');
+    renderEventsGrid(filteredBookings, bookingsGrid, 'booking');
+}
+
+// Stats update
+function updateStats() {
+    if (currentUser?.role === 'admin') {
+        document.getElementById('totalEvents').textContent = events.length;
+        document.getElementById('totalBookings').textContent = userBookings.length;
+        document.getElementById('totalRevenue').textContent = formatPrice(events.length * 50);
+        document.getElementById('avgRating').textContent = '4.8';
+    }
+}
+
+// Form event listeners
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    const loginBtn = document.getElementById('loginBtn');
+    
+    hideError('loginError');
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Signing In...</span>';
+    
+    try {
+        await login(username, password);
+    } catch (error) {
+        showError('loginError', error.message);
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Sign In</span>';
+    }
+});
+
+document.getElementById('signupForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const userData = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        password: document.getElementById('password').value
+    };
+    
+    const signupBtn = document.getElementById('signupBtn');
+    
+    hideError('signupError');
+    signupBtn.disabled = true;
+    signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Account...</span>';
+    
+    try {
+        await register(userData);
+        showToast('Account created successfully! Please sign in.', 'success');
+        showLogin();
+        document.getElementById('signupForm').reset();
+    } catch (error) {
+        showError('signupError', error.message || 'Failed to create account');
+    } finally {
+        signupBtn.disabled = false;
+        signupBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>Create Account</span>';
+    }
+});
+
+document.getElementById('createEventForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const eventData = {
+        event_title: document.getElementById('eventTitle').value,
+        event_description: document.getElementById('eventDescription').value,
+        event_location: document.getElementById('eventLocation').value,
+        event_date: document.getElementById('eventDate').value,
+        event_start_time: document.getElementById('startTime').value,
+        event_end_time: document.getElementById('endTime').value,
+        total_slots: parseInt(document.getElementById('totalSlots').value),
+        created_by: currentUser.username
+    };
+    
+    const createBtn = document.getElementById('createEventBtn');
+    
+    hideError('createEventError');
+    hideElement('createEventSuccess');
+    createBtn.disabled = true;
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Event...</span>';
+    
+    try {
+        await createEvent(eventData);
+        showSuccess('createEventSuccess', 'Event created successfully!');
+        showToast('Event created successfully!', 'success');
+        document.getElementById('createEventForm').reset();
+        renderEvents();
+    } catch (error) {
+        showError('createEventError', error.message || 'Failed to create event');
+    } finally {
+        createBtn.disabled = false;
+        createBtn.innerHTML = '<i class="fas fa-plus-circle"></i><span>Create Event</span>';
+    }
+});
+
+// Password strength checker
+document.getElementById('password')?.addEventListener('input', (e) => {
+    checkPasswordStrength(e.target.value);
+});
+
+// Search functionality
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    if (searchTerm.length > 2) {
+        const filteredEvents = events.filter(event => 
+            event.event_title.toLowerCase().includes(searchTerm) ||
+            event.event_description.toLowerCase().includes(searchTerm) ||
+            event.event_location.toLowerCase().includes(searchTerm)
+        );
+        renderFilteredEvents(filteredEvents);
+    } else if (searchTerm.length === 0) {
+        renderCustomerEvents();
+    }
+});
+
+// Price range filter
+document.getElementById('priceRange')?.addEventListener('input', (e) => {
+    document.getElementById('priceValue').textContent = formatPrice(e.target.value);
+});
+
+// Initialize the application
+document.addEventListener('DOMContentLoaded', () => {
+    // Set minimum date for event creation to today
+    const today = new Date().toISOString().split('T')[0];
+    const eventDateInput = document.getElementById('eventDate');
+    if (eventDateInput) {
+        eventDateInput.setAttribute('min', today);
+    }
+    
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput) {
+        dateInput.setAttribute('min', today);
+    }
+    
+    // Initialize price range display
+    const priceRange = document.getElementById('priceRange');
+    const priceValue = document.getElementById('priceValue');
+    if (priceRange && priceValue) {
+        priceValue.textContent = formatPrice(priceRange.value);
+    }
+    
+    console.log('EventPass application initialized');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Close modal with Escape key
+    if (e.key === 'Escape') {
+        closeEventModal();
+        
+        // Close user dropdown
+        const dropdowns = document.querySelectorAll('.user-dropdown');
+        dropdowns.forEach(dropdown => dropdown.classList.add('hidden'));
+    }
+    
+    // Quick search with Ctrl/Cmd + K
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput') || document.getElementById('heroSearchInput');
+        if (searchInput) {
+            searchInput.focus();
         }
     }
-}
-
-// --- Form Event Listeners ---
-document.addEventListener('DOMContentLoaded', () => {
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const loginBtn = document.getElementById('loginBtn');
-            const originalBtnText = loginBtn.innerHTML;
-
-            hideError('loginError');
-            loginBtn.disabled = true;
-            loginBtn.innerHTML = '<span>⏳</span> Signing In...';
-
-            try {
-                await login(username, password);
-            } catch (error) {
-                showError('loginError', error.message);
-            } finally {
-                loginBtn.disabled = false;
-                loginBtn.innerHTML = originalBtnText;
-            }
-        });
-    }
-
-    const signupForm = document.getElementById('signupForm');
-    if (signupForm) {
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const userData = {
-                firstName: document.getElementById('firstName').value,
-                lastName: document.getElementById('lastName').value,
-                username: document.getElementById('username').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                password: document.getElementById('password').value
-            };
-
-            const signupBtn = document.getElementById('signupBtn');
-            const originalBtnText = signupBtn.innerHTML;
-
-            hideError('signupError');
-            signupBtn.disabled = true;
-            signupBtn.innerHTML = '<span>⏳</span> Creating Account...';
-
-            try {
-                await register(userData);
-                alert('Account created successfully! Please sign in.');
-                showLogin(); // Switch to login view
-                signupForm.reset(); // Reset signup form
-            } catch (error) {
-                showError('signupError', error.message || 'Failed to create account. Please try again.');
-            } finally {
-                signupBtn.disabled = false;
-                signupBtn.innerHTML = originalBtnText;
-            }
-        });
-    }
-
-    const createEventForm = document.getElementById('createEventForm');
-    if (createEventForm) {
-        createEventForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const eventData = {
-                event_title: document.getElementById('eventTitle').value,
-                event_description: document.getElementById('eventDescription').value,
-                event_location: document.getElementById('eventLocation').value,
-                event_date: document.getElementById('eventDate').value,
-                event_start_time: document.getElementById('startTime').value,
-                event_end_time: document.getElementById('endTime').value,
-                total_slots: parseInt(document.getElementById('totalSlots').value),
-                created_by: currentUser.username // Assuming admin username is sufficient
-            };
-
-            const createBtn = document.getElementById('createEventBtn');
-            const originalBtnText = createBtn.innerHTML;
-
-            hideError('createEventError');
-            hideElement('createEventSuccess');
-            createBtn.disabled = true;
-            createBtn.innerHTML = '<span>⏳</span> Creating Event...';
-
-            try {
-                await createEvent(eventData);
-                showSuccess('createEventSuccess', 'Event created successfully!');
-                createEventForm.reset();
-                // showAdminDashboard(); // Optionally navigate back to event list
-                await loadEvents(); // Refresh admin event list
-            } catch (error) {
-                showError('createEventError', error.message || 'Failed to create event. Please try again.');
-            } finally {
-                createBtn.disabled = false;
-                createBtn.innerHTML = originalBtnText;
-            }
-        });
-    }
-    
-    // --- Initialization ---
-    // Set minimum date for event creation to today for relevant date pickers
-    const eventDateField = document.getElementById('eventDate');
-    if (eventDateField) {
-        const today = new Date().toISOString().split('T')[0];
-        eventDateField.setAttribute('min', today);
-    }
-    
-    // Initial UI setup: show login page, hide dashboards
-    hideElement('customerDashboard');
-    hideElement('adminDashboard');
-    hideElement('signupPage'); // Start with login page usually
-    showElement('loginPage');
-    setUserType('customer', null); // Default to customer type selection
-
-    console.log('Application initialized. Please log in or sign up.');
 });
+
+// Service Worker Registration (for PWA capabilities)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    });
+}

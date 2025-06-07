@@ -27,22 +27,16 @@
                 <div class="shape shape-3"></div>
                 <div class="shape shape-4"></div>
             </div>
-            
-            <div class="user-type-selector">
-                <button class="user-type-btn active" onclick="setUserType('customer')">
-                    👤 Customer
-                </button>
-                <button class="user-type-btn" onclick="setUserType('admin')">
-                    👨‍💼 Admin
-                </button>
-            </div>
-            
-            <div id="loginError" class="error-message hidden" role="alert"></div>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Enter your username" required>
+        </div>
+        
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="logo-container">
+                        <i class="fas fa-calendar-star"></i>
+                        <h1>EventPass</h1>
+                    </div>
+                    <p>Welcome back! Sign in to discover amazing events</p>
                 </div>
                 
                 <div class="user-type-selector">
@@ -111,14 +105,14 @@
                 <div class="shape shape-3"></div>
                 <div class="shape shape-4"></div>
             </div>
-            
-            <div id="signupError" class="error-message hidden" role="alert"></div>
-            
-            <form id="signupForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" placeholder="John" required>
+        </div>
+        
+        <div class="auth-container">
+            <div class="auth-card signup-card">
+                <div class="auth-header">
+                    <div class="logo-container">
+                        <i class="fas fa-calendar-star"></i>
+                        <h1>Join EventPass</h1>
                     </div>
                     <p>Create your account and start exploring events</p>
                 </div>
@@ -549,46 +543,15 @@
                     <p>Fill in the details to create an amazing event</p>
                 </div>
 
-                <div class="create-event-form">
-                    <div id="createEventError" class="error-message hidden" role="alert"></div>
-                    <div id="createEventSuccess" class="success-message hidden" role="status"></div>
-                    
-                    <form id="createEventForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="eventTitle">Event Title</label>
-                                <input type="text" id="eventTitle" placeholder="Amazing Event" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="eventLocation">Location</label>
-                                <input type="text" id="eventLocation" placeholder="New York, NY" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="eventDate">Date</label>
-                                <input type="date" id="eventDate" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="totalSlots">Total Slots</label>
-                                <input type="number" id="totalSlots" placeholder="100" min="1" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="startTime">Start Time</label>
-                                <input type="time" id="startTime" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="endTime">End Time</label>
-                                <input type="time" id="endTime" required>
-                            </div>
-                            
-                            <div class="form-group full-width">
-                                <label for="eventDescription">Description</label>
-                                <textarea id="eventDescription" placeholder="Describe your event..." required></textarea>
-                            </div>
+                <div class="create-event-container">
+                    <div class="create-event-form">
+                        <div id="createEventError" class="error-message hidden">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span></span>
+                        </div>
+                        <div id="createEventSuccess" class="success-message hidden">
+                            <i class="fas fa-check-circle"></i>
+                            <span></span>
                         </div>
                         
                         <form id="createEventForm">
