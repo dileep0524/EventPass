@@ -3,100 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EventPass - Event Management System</title>
+    <title>EventPass - Your Gateway to Amazing Events</title>
     <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+
     <!-- Login Page -->
-    <div id="loginPage" class="auth-container">
-        <div class="auth-card">
-            <div class="auth-header">
-                <h1>EventPass</h1>
-                <p>Welcome back! Please sign in to your account</p>
+    <div id="loginPage" class="auth-page">
+        <div class="auth-background">
+            <div class="auth-overlay"></div>
+            <div class="floating-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+                <div class="shape shape-4"></div>
             </div>
-            
-            <div class="user-type-selector">
-                <button class="user-type-btn active" onclick="setUserType('customer')">
-                    👤 Customer
-                </button>
-                <button class="user-type-btn" onclick="setUserType('admin')">
-                    👨‍💼 Admin
-                </button>
-            </div>
-            
-            <div id="loginError" class="error-message hidden" role="alert"></div>
-            
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginUsername">Username</label>
-                    <input type="text" id="loginUsername" placeholder="Enter your username" required>
+        </div>
+        
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <div class="logo-container">
+                        <i class="fas fa-calendar-star"></i>
+                        <h1>EventPass</h1>
+                    </div>
+                    <p>Welcome back! Sign in to discover amazing events</p>
                 </div>
                 
-                <div class="form-group">
-                    <label for="loginPassword">Password</label>
-                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                <div class="user-type-selector">
+                    <button class="user-type-btn active" onclick="setUserType('customer')" data-type="customer">
+                        <i class="fas fa-user"></i>
+                        <span>Customer</span>
+                    </button>
+                    <button class="user-type-btn" onclick="setUserType('admin')" data-type="admin">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Admin</span>
+                    </button>
                 </div>
                 
-                <button type="submit" class="btn" id="loginBtn">
-                    <span>🔑</span> Sign In
-                </button>
-            </form>
-            
-            <div class="auth-switch">
-                Don't have an account? <button type="button" onclick="showSignup()">Sign up</button>
+                <div id="loginError" class="error-message hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span></span>
+                </div>
+                
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="loginUsername">
+                            <i class="fas fa-user"></i>
+                            Username
+                        </label>
+                        <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('loginPassword')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="loginBtn">
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Sign In</span>
+                    </button>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>or</span>
+                </div>
+                
+                <div class="auth-switch">
+                    <p>Don't have an account?</p>
+                    <button type="button" class="link-btn" onclick="showSignup()">Create Account</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Signup Page -->
-    <div id="signupPage" class="auth-container hidden">
-        <div class="auth-card">
-            <div class="auth-header">
-                <h1>Join EventPass</h1>
-                <p>Create your customer account to book events</p>
+    <div id="signupPage" class="auth-page hidden">
+        <div class="auth-background">
+            <div class="auth-overlay"></div>
+            <div class="floating-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+                <div class="shape shape-4"></div>
             </div>
-            
-            <div id="signupError" class="error-message hidden" role="alert"></div>
-            
-            <form id="signupForm">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="firstName">First Name</label>
-                        <input type="text" id="firstName" placeholder="John" required>
+        </div>
+        
+        <div class="auth-container">
+            <div class="auth-card signup-card">
+                <div class="auth-header">
+                    <div class="logo-container">
+                        <i class="fas fa-calendar-star"></i>
+                        <h1>Join EventPass</h1>
                     </div>
-                    <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" placeholder="Doe" required>
+                    <p>Create your account and start exploring events</p>
+                </div>
+                
+                <div id="signupError" class="error-message hidden">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span></span>
+                </div>
+                
+                <form id="signupForm" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="firstName">
+                                <i class="fas fa-user"></i>
+                                First Name
+                            </label>
+                            <input type="text" id="firstName" placeholder="John" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="lastName">
+                                <i class="fas fa-user"></i>
+                                Last Name
+                            </label>
+                            <input type="text" id="lastName" placeholder="Doe" required>
+                        </div>
                     </div>
+                    
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-at"></i>
+                            Username
+                        </label>
+                        <input type="text" id="username" placeholder="johndoe" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">
+                            <i class="fas fa-envelope"></i>
+                            Email Address
+                        </label>
+                        <input type="email" id="email" placeholder="john@example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">
+                            <i class="fas fa-phone"></i>
+                            Phone Number
+                        </label>
+                        <input type="tel" id="phone" placeholder="+1 (555) 123-4567" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i>
+                            Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="password" placeholder="Create a strong password" required>
+                            <button type="button" class="password-toggle" onclick="togglePassword('password')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength">
+                            <div class="strength-bar">
+                                <div class="strength-fill"></div>
+                            </div>
+                            <span class="strength-text">Password strength</span>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" id="signupBtn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Create Account</span>
+                    </button>
+                </form>
+                
+                <div class="auth-divider">
+                    <span>or</span>
                 </div>
                 
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="johndoe" required>
+                <div class="auth-switch">
+                    <p>Already have an account?</p>
+                    <button type="button" class="link-btn" onclick="showLogin()">Sign In</button>
                 </div>
-                
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="john@example.com" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="phone">Phone</label>
-                    <input type="tel" id="phone" placeholder="+1234567890" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="••••••••" required>
-                </div>
-                
-                <button type="submit" class="btn" id="signupBtn">
-                    <span>👤</span> Create Account
-                </button>
-            </form>
-            
-            <div class="auth-switch">
-                Already have an account? <button type="button" onclick="showLogin()">Sign in</button>
             </div>
         </div>
     </div>
@@ -105,41 +205,189 @@
     <div id="customerDashboard" class="dashboard hidden">
         <header class="header">
             <div class="header-content">
-                <div class="logo">EventPass</div>
+                <div class="logo-container">
+                    <i class="fas fa-calendar-star"></i>
+                    <span class="logo-text">EventPass</span>
+                </div>
+                
                 <nav class="nav-menu">
                     <button class="nav-item active" onclick="showCustomerDashboard()">
-                        <span>🏠</span> Dashboard
+                        <i class="fas fa-home"></i>
+                        <span>Discover</span>
                     </button>
                     <button class="nav-item" onclick="showMyBookings()">
-                        <span>🎫</span> My Bookings
+                        <i class="fas fa-ticket-alt"></i>
+                        <span>My Bookings</span>
+                    </button>
+                    <button class="nav-item" onclick="showFavorites()">
+                        <i class="fas fa-heart"></i>
+                        <span>Favorites</span>
                     </button>
                 </nav>
-                <div class="user-info">
-                    <span class="user-role customer">Customer</span>
-                    <span id="welcomeCustomer">Welcome, User</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
+                
+                <div class="header-actions">
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search events..." id="searchInput">
+                    </div>
+                    <div class="user-menu">
+                        <button class="user-avatar" onclick="toggleUserMenu()">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="welcomeCustomer">Welcome</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="user-dropdown hidden" id="userDropdown">
+                            <a href="#" onclick="showProfile()">
+                                <i class="fas fa-user"></i>
+                                Profile
+                            </a>
+                            <a href="#" onclick="showSettings()">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
 
         <main class="main-content">
+            <!-- Hero Section -->
             <div id="customerDashboardContent">
-                <div class="page-header">
-                    <h2>Available Events</h2>
-                    <p>Discover and book amazing events</p>
-                </div>
-
-                <div id="customerEventsContainer">
-                    <div class="events-grid" id="customerEventsGrid">
-                        <!-- Events will be loaded here -->
+                <section class="hero-section">
+                    <div class="hero-content">
+                        <h1>Discover Amazing Events</h1>
+                        <p>Find and book the best events happening around you</p>
+                        
+                        <div class="search-bar">
+                            <div class="search-field">
+                                <i class="fas fa-search"></i>
+                                <input type="text" placeholder="What event are you looking for?" id="heroSearchInput">
+                            </div>
+                            <div class="search-field">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <input type="text" placeholder="Location" id="locationInput">
+                            </div>
+                            <div class="search-field">
+                                <i class="fas fa-calendar"></i>
+                                <input type="date" id="dateInput">
+                            </div>
+                            <button class="search-btn" onclick="searchEvents()">
+                                <i class="fas fa-search"></i>
+                                Search
+                            </button>
+                        </div>
                     </div>
-                </div>
+                </section>
+
+                <!-- Categories Section -->
+                <section class="categories-section">
+                    <div class="section-header">
+                        <h2>Browse by Category</h2>
+                        <p>Find events that match your interests</p>
+                    </div>
+                    <div class="categories-grid">
+                        <div class="category-card" onclick="filterByCategory('music')">
+                            <i class="fas fa-music"></i>
+                            <h3>Music</h3>
+                            <p>Concerts & Festivals</p>
+                        </div>
+                        <div class="category-card" onclick="filterByCategory('sports')">
+                            <i class="fas fa-futbol"></i>
+                            <h3>Sports</h3>
+                            <p>Games & Tournaments</p>
+                        </div>
+                        <div class="category-card" onclick="filterByCategory('business')">
+                            <i class="fas fa-briefcase"></i>
+                            <h3>Business</h3>
+                            <p>Conferences & Networking</p>
+                        </div>
+                        <div class="category-card" onclick="filterByCategory('arts')">
+                            <i class="fas fa-palette"></i>
+                            <h3>Arts</h3>
+                            <p>Exhibitions & Shows</p>
+                        </div>
+                        <div class="category-card" onclick="filterByCategory('food')">
+                            <i class="fas fa-utensils"></i>
+                            <h3>Food</h3>
+                            <p>Tastings & Festivals</p>
+                        </div>
+                        <div class="category-card" onclick="filterByCategory('tech')">
+                            <i class="fas fa-laptop-code"></i>
+                            <h3>Technology</h3>
+                            <p>Workshops & Meetups</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Events Section -->
+                <section class="events-section">
+                    <div class="section-header">
+                        <h2>Featured Events</h2>
+                        <div class="filter-controls">
+                            <select id="sortSelect" onchange="sortEvents()">
+                                <option value="date">Sort by Date</option>
+                                <option value="popularity">Sort by Popularity</option>
+                                <option value="price">Sort by Price</option>
+                            </select>
+                            <button class="filter-btn" onclick="toggleFilters()">
+                                <i class="fas fa-filter"></i>
+                                Filters
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filters-panel hidden" id="filtersPanel">
+                        <div class="filter-group">
+                            <label>Price Range</label>
+                            <div class="price-range">
+                                <input type="range" id="priceRange" min="0" max="1000" value="500">
+                                <span id="priceValue">$500</span>
+                            </div>
+                        </div>
+                        <div class="filter-group">
+                            <label>Event Type</label>
+                            <div class="checkbox-group">
+                                <label><input type="checkbox" value="online"> Online</label>
+                                <label><input type="checkbox" value="offline"> In-person</label>
+                                <label><input type="checkbox" value="hybrid"> Hybrid</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="customerEventsContainer">
+                        <div class="events-grid" id="customerEventsGrid">
+                            <!-- Events will be loaded here -->
+                        </div>
+                    </div>
+                </section>
             </div>
 
+            <!-- My Bookings Content -->
             <div id="myBookingsContent" class="hidden">
                 <div class="page-header">
                     <h2>My Bookings</h2>
-                    <p>View your booked events</p>
+                    <p>Manage your booked events</p>
+                </div>
+
+                <div class="bookings-tabs">
+                    <button class="tab-btn active" onclick="showBookingsTab('upcoming')">
+                        <i class="fas fa-calendar-plus"></i>
+                        Upcoming
+                    </button>
+                    <button class="tab-btn" onclick="showBookingsTab('past')">
+                        <i class="fas fa-history"></i>
+                        Past Events
+                    </button>
+                    <button class="tab-btn" onclick="showBookingsTab('cancelled')">
+                        <i class="fas fa-times-circle"></i>
+                        Cancelled
+                    </button>
                 </div>
 
                 <div id="bookingsContainer">
@@ -148,106 +396,293 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Favorites Content -->
+            <div id="favoritesContent" class="hidden">
+                <div class="page-header">
+                    <h2>Favorite Events</h2>
+                    <p>Events you've saved for later</p>
+                </div>
+
+                <div id="favoritesContainer">
+                    <div class="events-grid" id="favoritesGrid">
+                        <!-- Favorites will be loaded here -->
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
     <!-- Admin Dashboard -->
     <div id="adminDashboard" class="dashboard hidden">
-        <header class="header">
+        <header class="header admin-header">
             <div class="header-content">
-                <div class="logo">EventPass Admin</div>
+                <div class="logo-container">
+                    <i class="fas fa-calendar-star"></i>
+                    <span class="logo-text">EventPass Admin</span>
+                </div>
+                
                 <nav class="nav-menu">
                     <button class="nav-item active" onclick="showAdminDashboard()">
-                        <span>🏠</span> Dashboard
+                        <i class="fas fa-chart-line"></i>
+                        <span>Dashboard</span>
                     </button>
                     <button class="nav-item" onclick="showCreateEvent()">
-                        <span>➕</span> Create Event
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Create Event</span>
                     </button>
                     <button class="nav-item" onclick="showManageEvents()">
-                        <span>⚙️</span> Manage Events
+                        <i class="fas fa-cogs"></i>
+                        <span>Manage Events</span>
+                    </button>
+                    <button class="nav-item" onclick="showAnalytics()">
+                        <i class="fas fa-analytics"></i>
+                        <span>Analytics</span>
                     </button>
                 </nav>
-                <div class="user-info">
-                    <span class="user-role">Admin</span>
-                    <span id="welcomeAdmin">Welcome, Admin</span>
-                    <button class="logout-btn" onclick="logout()">Logout</button>
+                
+                <div class="header-actions">
+                    <div class="notifications">
+                        <button class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                    </div>
+                    <div class="user-menu">
+                        <button class="user-avatar" onclick="toggleUserMenu()">
+                            <i class="fas fa-user-shield"></i>
+                            <span id="welcomeAdmin">Admin</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="user-dropdown hidden" id="adminUserDropdown">
+                            <a href="#" onclick="showAdminProfile()">
+                                <i class="fas fa-user"></i>
+                                Profile
+                            </a>
+                            <a href="#" onclick="showAdminSettings()">
+                                <i class="fas fa-cog"></i>
+                                Settings
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" onclick="logout()">
+                                <i class="fas fa-sign-out-alt"></i>
+                                Logout
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </header>
 
         <main class="main-content">
+            <!-- Admin Dashboard Content -->
             <div id="adminDashboardContent">
                 <div class="page-header">
                     <h2>Admin Dashboard</h2>
-                    <p>Manage events and view analytics</p>
+                    <p>Manage your events and view analytics</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalEvents">0</h3>
+                            <p>Total Events</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalBookings">0</h3>
+                            <p>Total Bookings</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-dollar-sign"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalRevenue">$0</h3>
+                            <p>Total Revenue</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="avgRating">0.0</h3>
+                            <p>Avg Rating</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div id="adminEventsContainer">
+                    <div class="section-header">
+                        <h3>Recent Events</h3>
+                        <button class="btn btn-primary" onclick="showCreateEvent()">
+                            <i class="fas fa-plus"></i>
+                            Create New Event
+                        </button>
+                    </div>
                     <div class="events-grid" id="adminEventsGrid">
                         <!-- Events will be loaded here -->
                     </div>
                 </div>
             </div>
 
+            <!-- Create Event Content -->
             <div id="createEventContent" class="hidden">
                 <div class="page-header">
                     <h2>Create New Event</h2>
                     <p>Fill in the details to create an amazing event</p>
                 </div>
 
-                <div class="create-event-form">
-                    <div id="createEventError" class="error-message hidden" role="alert"></div>
-                    <div id="createEventSuccess" class="success-message hidden" role="status"></div>
-                    
-                    <form id="createEventForm">
-                        <div class="form-grid">
-                            <div class="form-group">
-                                <label for="eventTitle">Event Title</label>
-                                <input type="text" id="eventTitle" placeholder="Amazing Event" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="eventLocation">Location</label>
-                                <input type="text" id="eventLocation" placeholder="New York, NY" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="eventDate">Date</label>
-                                <input type="date" id="eventDate" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="totalSlots">Total Slots</label>
-                                <input type="number" id="totalSlots" placeholder="100" min="1" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="startTime">Start Time</label>
-                                <input type="time" id="startTime" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="endTime">End Time</label>
-                                <input type="time" id="endTime" required>
-                            </div>
-                            
-                            <div class="form-group full-width">
-                                <label for="eventDescription">Description</label>
-                                <textarea id="eventDescription" placeholder="Describe your event..." required></textarea>
-                            </div>
+                <div class="create-event-container">
+                    <div class="create-event-form">
+                        <div id="createEventError" class="error-message hidden">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span></span>
+                        </div>
+                        <div id="createEventSuccess" class="success-message hidden">
+                            <i class="fas fa-check-circle"></i>
+                            <span></span>
                         </div>
                         
-                        <button type="submit" class="btn" id="createEventBtn">
-                            <span>✨</span> Create Event
-                        </button>
-                    </form>
+                        <form id="createEventForm">
+                            <div class="form-section">
+                                <h3>Basic Information</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="eventTitle">
+                                            <i class="fas fa-heading"></i>
+                                            Event Title
+                                        </label>
+                                        <input type="text" id="eventTitle" placeholder="Amazing Event" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="eventCategory">
+                                            <i class="fas fa-tags"></i>
+                                            Category
+                                        </label>
+                                        <select id="eventCategory" required>
+                                            <option value="">Select Category</option>
+                                            <option value="music">Music</option>
+                                            <option value="sports">Sports</option>
+                                            <option value="business">Business</option>
+                                            <option value="arts">Arts</option>
+                                            <option value="food">Food</option>
+                                            <option value="tech">Technology</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group full-width">
+                                        <label for="eventDescription">
+                                            <i class="fas fa-align-left"></i>
+                                            Description
+                                        </label>
+                                        <textarea id="eventDescription" placeholder="Describe your event in detail..." required></textarea>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Date & Time</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="eventDate">
+                                            <i class="fas fa-calendar"></i>
+                                            Event Date
+                                        </label>
+                                        <input type="date" id="eventDate" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="startTime">
+                                            <i class="fas fa-clock"></i>
+                                            Start Time
+                                        </label>
+                                        <input type="time" id="startTime" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="endTime">
+                                            <i class="fas fa-clock"></i>
+                                            End Time
+                                        </label>
+                                        <input type="time" id="endTime" required>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-section">
+                                <h3>Location & Capacity</h3>
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="eventLocation">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            Location
+                                        </label>
+                                        <input type="text" id="eventLocation" placeholder="New York, NY" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="totalSlots">
+                                            <i class="fas fa-users"></i>
+                                            Total Slots
+                                        </label>
+                                        <input type="number" id="totalSlots" placeholder="100" min="1" required>
+                                    </div>
+                                    
+                                    <div class="form-group">
+                                        <label for="eventPrice">
+                                            <i class="fas fa-dollar-sign"></i>
+                                            Price per Ticket
+                                        </label>
+                                        <input type="number" id="eventPrice" placeholder="50" min="0" step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions">
+                                <button type="button" class="btn btn-secondary" onclick="showAdminDashboard()">
+                                    <i class="fas fa-times"></i>
+                                    Cancel
+                                </button>
+                                <button type="submit" class="btn btn-primary" id="createEventBtn">
+                                    <i class="fas fa-plus-circle"></i>
+                                    <span>Create Event</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
 
+            <!-- Manage Events Content -->
             <div id="manageEventsContent" class="hidden">
                 <div class="page-header">
                     <h2>Manage Events</h2>
-                    <p>Edit or delete existing events</p>
+                    <p>Edit, delete, or view details of your events</p>
+                </div>
+
+                <div class="manage-controls">
+                    <div class="search-filter">
+                        <input type="text" placeholder="Search events..." id="manageSearchInput">
+                        <select id="manageStatusFilter">
+                            <option value="">All Status</option>
+                            <option value="upcoming">Upcoming</option>
+                            <option value="ongoing">Ongoing</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div id="manageEventsContainer">
@@ -256,8 +691,89 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Analytics Content -->
+            <div id="analyticsContent" class="hidden">
+                <div class="page-header">
+                    <h2>Analytics</h2>
+                    <p>Insights and performance metrics</p>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="chart-card">
+                        <h3>Bookings Over Time</h3>
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-line"></i>
+                            <p>Chart will be implemented here</p>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Popular Categories</h3>
+                        <div class="chart-placeholder">
+                            <i class="fas fa-chart-pie"></i>
+                            <p>Chart will be implemented here</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
+
+    <!-- Event Details Modal -->
+    <div id="eventModal" class="modal hidden">
+        <div class="modal-overlay" onclick="closeEventModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalEventTitle">Event Title</h2>
+                <button class="modal-close" onclick="closeEventModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="event-image">
+                    <img src="https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg" alt="Event" id="modalEventImage">
+                    <div class="event-badge" id="modalEventCategory">Music</div>
+                </div>
+                <div class="event-info">
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span id="modalEventDate">Date</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span id="modalEventTime">Time</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span id="modalEventLocation">Location</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span id="modalEventSlots">Slots</span>
+                        </div>
+                    </div>
+                    <div class="event-description">
+                        <h3>About this event</h3>
+                        <p id="modalEventDescription">Event description</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEventModal()">
+                    <i class="fas fa-times"></i>
+                    Close
+                </button>
+                <button class="btn btn-primary" id="modalBookBtn" onclick="bookEventFromModal()">
+                    <i class="fas fa-ticket-alt"></i>
+                    Book Now
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
 
     <script src="script.js"></script>
 </body>
