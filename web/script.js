@@ -6,28 +6,45 @@ let currentUser = null;
 let currentUserType = 'customer';
 let events = [];
 let userBookings = [];
+let favoriteEvents = [];
+let currentEventModal = null;
 
 // API Helper function
 async function apiCall(endpoint, method = 'GET', body = null) {
-    const config = {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    };
+    showLoading();
     
-    if (body) {
-        config.body = JSON.stringify(body);
+    try {
+        const config = {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        };
+        
+        if (body) {
+            config.body = JSON.stringify(body);
+        }
+        
+        const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        return response.json();
+    } finally {
+        hideLoading();
     }
-    
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-    
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return response.json();
+}
+
+// Loading functions
+function showLoading() {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').classList.add('hidden');
 }
 
 // Utility functions
@@ -41,7 +58,12 @@ function hideElement(id) {
 
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
-    errorElement.textContent = message;
+    const span = errorElement.querySelector('span');
+    if (span) {
+        span.textContent = message;
+    } else {
+        errorElement.textContent = message;
+    }
     errorElement.classList.remove('hidden');
 }
 
@@ -51,8 +73,36 @@ function hideError(elementId) {
 
 function showSuccess(elementId, message) {
     const successElement = document.getElementById(elementId);
-    successElement.textContent = message;
+    const span = successElement.querySelector('span');
+    if (span) {
+        span.textContent = message;
+    } else {
+        successElement.textContent = message;
+    }
     successElement.classList.remove('hidden');
+}
+
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    
+    const icon = type === 'success' ? 'check-circle' : 
+                 type === 'error' ? 'exclamation-triangle' : 
+                 type === 'warning' ? 'exclamation-triangle' : 'info-circle';
+    
+    toast.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 5000);
 }
 
 function formatDate(dateString) {
@@ -71,12 +121,87 @@ function formatTime(timeString) {
     });
 }
 
+function formatPrice(price) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+    }).format(price || 0);
+}
+
+// Password functions
+function togglePassword(inputId) {
+    const input = document.getElementById(inputId);
+    const button = input.parentElement.querySelector('.password-toggle');
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+function checkPasswordStrength(password) {
+    let strength = 0;
+    const checks = [
+        password.length >= 8,
+        /[a-z]/.test(password),
+        /[A-Z]/.test(password),
+        /[0-9]/.test(password),
+        /[^A-Za-z0-9]/.test(password)
+    ];
+    
+    strength = checks.filter(Boolean).length;
+    
+    const strengthBar = document.querySelector('.strength-fill');
+    const strengthText = document.querySelector('.strength-text');
+    
+    if (strengthBar && strengthText) {
+        const percentage = (strength / 5) * 100;
+        strengthBar.style.width = `${percentage}%`;
+        
+        if (strength < 2) {
+            strengthBar.style.background = '#ef4444';
+            strengthText.textContent = 'Weak password';
+        } else if (strength < 4) {
+            strengthBar.style.background = '#f59e0b';
+            strengthText.textContent = 'Medium password';
+        } else {
+            strengthBar.style.background = '#10b981';
+            strengthText.textContent = 'Strong password';
+        }
+    }
+}
+
 // User type selection
 function setUserType(type) {
     currentUserType = type;
-    document.querySelectorAll('.user-type-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    document.querySelectorAll('.user-type-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.type === type) {
+            btn.classList.add('active');
+        }
+    });
 }
+
+// User menu functions
+function toggleUserMenu() {
+    const dropdown = document.getElementById('userDropdown') || document.getElementById('adminUserDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('hidden');
+    }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const userMenu = e.target.closest('.user-menu');
+    if (!userMenu) {
+        const dropdowns = document.querySelectorAll('.user-dropdown');
+        dropdowns.forEach(dropdown => dropdown.classList.add('hidden'));
+    }
+});
 
 // API functions
 async function register(userData) {
@@ -102,7 +227,7 @@ async function login(username, password) {
         const response = await apiCall('/v1/users/login', 'POST', {
             username: username,
             password: password,
-            user_id: "" // Add user_id if needed based on your login logic
+            user_id: ""
         });
         
         // Handle successful login
@@ -121,6 +246,7 @@ async function login(username, password) {
         }
         
         await loadEvents();
+        showToast('Login successful!', 'success');
         return { success: true, data: response };
     } catch (error) {
         console.error('Login error:', error);
@@ -141,7 +267,6 @@ async function createEvent(eventData) {
             total_slots: eventData.total_slots
         });
         
-        // Refresh events list after creating
         await loadEvents();
         return { success: true, data: response };
     } catch (error) {
@@ -155,9 +280,9 @@ async function loadEvents() {
         const response = await apiCall('/v1/events?page=1&limit=100');
         events = response.events || [];
         renderEvents();
+        updateStats();
     } catch (error) {
         console.error('Load events error:', error);
-        // Fallback to empty array if API fails
         events = [];
         renderEvents();
     }
@@ -173,33 +298,31 @@ async function getEventDetails(eventId) {
     }
 }
 
-// Note: You'll need to add booking endpoints to your proto files
 async function bookEvent(eventId) {
     try {
-        // This endpoint needs to be added to your proto files
-        const response = await apiCall(`/v1/events/${eventId}/book`, 'POST', {
-            user_id: currentUser.username // or actual user ID
-        });
-        
-        // Add to local bookings for now
+        // Simulate booking since endpoint doesn't exist yet
         const event = events.find(e => e.event_id === eventId);
         if (event) {
-            userBookings.push({
+            const booking = {
                 ...event,
                 booking_date: new Date().toISOString(),
-                booking_id: Math.random().toString(36).substr(2, 9)
-            });
+                booking_id: Math.random().toString(36).substr(2, 9),
+                status: 'confirmed'
+            };
+            userBookings.push(booking);
+            
+            // Decrease available slots
+            event.total_slots = Math.max(0, event.total_slots - 1);
         }
         
-        await loadEvents(); // Refresh events to update available slots
-        return { success: true, data: response };
+        return { success: true };
     } catch (error) {
         console.error('Book event error:', error);
         throw error;
     }
 }
 
-// UI functions
+// UI Navigation functions
 function showLogin() {
     hideElement('signupPage');
     showElement('loginPage');
@@ -214,6 +337,7 @@ function showSignup() {
 
 function showCustomerDashboard() {
     hideElement('myBookingsContent');
+    hideElement('favoritesContent');
     showElement('customerDashboardContent');
     updateNavActive('customerDashboard', 0);
     renderCustomerEvents();
@@ -221,14 +345,24 @@ function showCustomerDashboard() {
 
 function showMyBookings() {
     hideElement('customerDashboardContent');
+    hideElement('favoritesContent');
     showElement('myBookingsContent');
     updateNavActive('customerDashboard', 1);
     renderMyBookings();
 }
 
+function showFavorites() {
+    hideElement('customerDashboardContent');
+    hideElement('myBookingsContent');
+    showElement('favoritesContent');
+    updateNavActive('customerDashboard', 2);
+    renderFavorites();
+}
+
 function showAdminDashboard() {
     hideElement('createEventContent');
     hideElement('manageEventsContent');
+    hideElement('analyticsContent');
     showElement('adminDashboardContent');
     updateNavActive('adminDashboard', 0);
     renderAdminEvents();
@@ -237,6 +371,7 @@ function showAdminDashboard() {
 function showCreateEvent() {
     hideElement('adminDashboardContent');
     hideElement('manageEventsContent');
+    hideElement('analyticsContent');
     showElement('createEventContent');
     updateNavActive('adminDashboard', 1);
     hideError('createEventError');
@@ -246,9 +381,18 @@ function showCreateEvent() {
 function showManageEvents() {
     hideElement('adminDashboardContent');
     hideElement('createEventContent');
+    hideElement('analyticsContent');
     showElement('manageEventsContent');
     updateNavActive('adminDashboard', 2);
     renderManageEvents();
+}
+
+function showAnalytics() {
+    hideElement('adminDashboardContent');
+    hideElement('createEventContent');
+    hideElement('manageEventsContent');
+    showElement('analyticsContent');
+    updateNavActive('adminDashboard', 3);
 }
 
 function updateNavActive(dashboard, index) {
@@ -266,6 +410,7 @@ function logout() {
     currentUser = null;
     events = [];
     userBookings = [];
+    favoriteEvents = [];
     hideElement('customerDashboard');
     hideElement('adminDashboard');
     showElement('loginPage');
@@ -274,8 +419,73 @@ function logout() {
     document.getElementById('loginForm').reset();
     document.getElementById('signupForm').reset();
     document.getElementById('createEventForm').reset();
+    
+    showToast('Logged out successfully', 'info');
 }
 
+// Search and filter functions
+function searchEvents() {
+    const searchTerm = document.getElementById('heroSearchInput').value.toLowerCase();
+    const location = document.getElementById('locationInput').value.toLowerCase();
+    const date = document.getElementById('dateInput').value;
+    
+    let filteredEvents = events;
+    
+    if (searchTerm) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_title.toLowerCase().includes(searchTerm) ||
+            event.event_description.toLowerCase().includes(searchTerm)
+        );
+    }
+    
+    if (location) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_location.toLowerCase().includes(location)
+        );
+    }
+    
+    if (date) {
+        filteredEvents = filteredEvents.filter(event => 
+            event.event_date === date
+        );
+    }
+    
+    renderFilteredEvents(filteredEvents);
+    showToast(`Found ${filteredEvents.length} events`, 'info');
+}
+
+function filterByCategory(category) {
+    // Since category is not in the current API, we'll simulate it
+    showToast(`Filtering by ${category} category`, 'info');
+    renderCustomerEvents();
+}
+
+function sortEvents() {
+    const sortBy = document.getElementById('sortSelect').value;
+    let sortedEvents = [...events];
+    
+    switch (sortBy) {
+        case 'date':
+            sortedEvents.sort((a, b) => new Date(a.event_date) - new Date(b.event_date));
+            break;
+        case 'popularity':
+            sortedEvents.sort((a, b) => b.total_slots - a.total_slots);
+            break;
+        case 'price':
+            // Since price is not in current API, we'll use slots as proxy
+            sortedEvents.sort((a, b) => a.total_slots - b.total_slots);
+            break;
+    }
+    
+    renderFilteredEvents(sortedEvents);
+}
+
+function toggleFilters() {
+    const filtersPanel = document.getElementById('filtersPanel');
+    filtersPanel.classList.toggle('hidden');
+}
+
+// Render functions
 function renderEvents() {
     if (currentUser?.role === 'customer') {
         renderCustomerEvents();
@@ -284,47 +494,14 @@ function renderEvents() {
     }
 }
 
+function renderFilteredEvents(filteredEvents) {
+    const eventsGrid = document.getElementById('customerEventsGrid');
+    renderEventsGrid(filteredEvents, eventsGrid, 'customer');
+}
+
 function renderCustomerEvents() {
     const eventsGrid = document.getElementById('customerEventsGrid');
-    
-    if (events.length === 0) {
-        eventsGrid.innerHTML = `
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path>
-                </svg>
-                <h3>No Events Available</h3>
-                <p>Check back later for exciting events!</p>
-            </div>
-        `;
-        return;
-    }
-
-    eventsGrid.innerHTML = events.map(event => `
-        <div class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail">
-                    <span>📅</span> ${formatDate(event.event_date)}
-                </div>
-                <div class="event-detail">
-                    <span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}
-                </div>
-                <div class="event-detail">
-                    <span>📍</span> ${event.event_location}
-                </div>
-                <div class="event-detail">
-                    <span>🎫</span> ${event.total_slots} slots available
-                </div>
-            </div>
-            <div class="event-actions">
-                <button class="btn-secondary" onclick="bookEventHandler('${event.event_id}')">
-                    Book Now
-                </button>
-            </div>
-        </div>
-    `).join('');
+    renderEventsGrid(events, eventsGrid, 'customer');
 }
 
 function renderMyBookings() {
@@ -333,9 +510,7 @@ function renderMyBookings() {
     if (userBookings.length === 0) {
         bookingsGrid.innerHTML = `
             <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v6a2 2 0 002 2h6a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                </svg>
+                <i class="fas fa-ticket-alt"></i>
                 <h3>No Bookings Yet</h3>
                 <p>Book some events to see them here!</p>
             </div>
@@ -343,135 +518,282 @@ function renderMyBookings() {
         return;
     }
 
-    bookingsGrid.innerHTML = userBookings.map(booking => `
-        <div class="event-card">
-            <div class="event-title">${booking.event_title}</div>
-            <div class="event-description">${booking.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail">
-                    <span>📅</span> ${formatDate(booking.event_date)}
-                </div>
-                <div class="event-detail">
-                    <span>⏰</span> ${formatTime(booking.event_start_time)} - ${formatTime(booking.event_end_time)}
-                </div>
-                <div class="event-detail">
-                    <span>📍</span> ${booking.event_location}
-                </div>
-                <div class="event-detail">
-                    <span>🎫</span> Booking ID: ${booking.booking_id}
-                </div>
-                <div class="event-detail">
-                    <span>✅</span> Booked on ${new Date(booking.booking_date).toLocaleDateString()}
-                </div>
+    renderEventsGrid(userBookings, bookingsGrid, 'booking');
+}
+
+function renderFavorites() {
+    const favoritesGrid = document.getElementById('favoritesGrid');
+    
+    if (favoriteEvents.length === 0) {
+        favoritesGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-heart"></i>
+                <h3>No Favorites Yet</h3>
+                <p>Add events to your favorites to see them here!</p>
             </div>
-        </div>
-    `).join('');
+        `;
+        return;
+    }
+
+    renderEventsGrid(favoriteEvents, favoritesGrid, 'favorite');
 }
 
 function renderAdminEvents() {
     const eventsGrid = document.getElementById('adminEventsGrid');
-    
-    if (events.length === 0) {
-        eventsGrid.innerHTML = `
-            <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path>
-                </svg>
-                <h3>No Events Created</h3>
-                <p>Create your first event to get started!</p>
-            </div>
-        `;
-        return;
-    }
-
-    eventsGrid.innerHTML = events.map(event => `
-        <div class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail">
-                    <span>📅</span> ${formatDate(event.event_date)}
-                </div>
-                <div class="event-detail">
-                    <span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}
-                </div>
-                <div class="event-detail">
-                    <span>📍</span> ${event.event_location}
-                </div>
-                <div class="event-detail">
-                    <span>🎫</span> ${event.total_slots} slots total
-                </div>
-            </div>
-        </div>
-    `).join('');
+    renderEventsGrid(events.slice(0, 6), eventsGrid, 'admin');
 }
 
 function renderManageEvents() {
     const eventsGrid = document.getElementById('manageEventsGrid');
-    
-    if (events.length === 0) {
-        eventsGrid.innerHTML = `
+    renderEventsGrid(events, eventsGrid, 'manage');
+}
+
+function renderEventsGrid(eventsList, container, type) {
+    if (eventsList.length === 0) {
+        container.innerHTML = `
             <div class="empty-state">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4l-4 4-4-4V7z"></path>
-                </svg>
-                <h3>No Events to Manage</h3>
-                <p>Create some events first!</p>
+                <i class="fas fa-calendar-times"></i>
+                <h3>No Events Available</h3>
+                <p>Check back later for exciting events!</p>
             </div>
         `;
         return;
     }
 
-    eventsGrid.innerHTML = events.map(event => `
-        <div class="event-card">
-            <div class="event-title">${event.event_title}</div>
-            <div class="event-description">${event.event_description}</div>
-            <div class="event-details">
-                <div class="event-detail">
-                    <span>📅</span> ${formatDate(event.event_date)}
+    container.innerHTML = eventsList.map(event => {
+        const isFavorite = favoriteEvents.some(fav => fav.event_id === event.event_id);
+        const eventImage = getEventImage(event.event_title);
+        const eventCategory = getEventCategory(event.event_title);
+        
+        return `
+            <div class="event-card" onclick="openEventModal('${event.event_id}')">
+                <div class="event-image">
+                    <img src="${eventImage}" alt="${event.event_title}" loading="lazy">
+                    <div class="event-badge">${eventCategory}</div>
+                    ${type === 'customer' ? `
+                        <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
+                                onclick="event.stopPropagation(); toggleFavorite('${event.event_id}')"
+                                title="${isFavorite ? 'Remove from favorites' : 'Add to favorites'}">
+                            <i class="fas fa-heart"></i>
+                        </button>
+                    ` : ''}
                 </div>
-                <div class="event-detail">
-                    <span>⏰</span> ${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}
-                </div>
-                <div class="event-detail">
-                    <span>📍</span> ${event.event_location}
-                </div>
-                <div class="event-detail">
-                    <span>🎫</span> ${event.total_slots} slots total
+                <div class="event-content">
+                    <div class="event-title">${event.event_title}</div>
+                    <div class="event-description">${event.event_description}</div>
+                    <div class="event-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-calendar"></i>
+                            <span>${formatDate(event.event_date)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${formatTime(event.event_start_time)}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <span>${event.event_location}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-users"></i>
+                            <span>${event.total_slots} slots</span>
+                        </div>
+                    </div>
+                    <div class="event-actions">
+                        ${type === 'customer' ? `
+                            <div class="event-price">${formatPrice(Math.random() * 100 + 20)}</div>
+                            <button class="btn btn-primary" onclick="event.stopPropagation(); bookEventHandler('${event.event_id}')">
+                                <i class="fas fa-ticket-alt"></i>
+                                Book Now
+                            </button>
+                        ` : type === 'booking' ? `
+                            <div class="booking-status">
+                                <i class="fas fa-check-circle" style="color: var(--success-color);"></i>
+                                Confirmed
+                            </div>
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); viewTicket('${event.booking_id}')">
+                                <i class="fas fa-eye"></i>
+                                View Ticket
+                            </button>
+                        ` : type === 'manage' ? `
+                            <button class="btn btn-secondary" onclick="event.stopPropagation(); editEventHandler('${event.event_id}')">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button class="btn btn-danger" onclick="event.stopPropagation(); deleteEventHandler('${event.event_id}')">
+                                <i class="fas fa-trash"></i>
+                                Delete
+                            </button>
+                        ` : ''}
+                    </div>
                 </div>
             </div>
-            <div class="event-actions">
-                <button class="btn-secondary" onclick="editEventHandler('${event.event_id}')">
-                    Edit
-                </button>
-                <button class="btn-danger" onclick="deleteEventHandler('${event.event_id}')">
-                    Delete
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
+}
+
+function getEventImage(title) {
+    // Return different images based on event title keywords
+    const images = [
+        'https://images.pexels.com/photos/1190298/pexels-photo-1190298.jpeg',
+        'https://images.pexels.com/photos/2747449/pexels-photo-2747449.jpeg',
+        'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg',
+        'https://images.pexels.com/photos/2263436/pexels-photo-2263436.jpeg',
+        'https://images.pexels.com/photos/1105666/pexels-photo-1105666.jpeg'
+    ];
+    
+    const hash = title.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+    }, 0);
+    
+    return images[Math.abs(hash) % images.length];
+}
+
+function getEventCategory(title) {
+    const categories = {
+        'music': ['concert', 'festival', 'band', 'singer', 'music'],
+        'sports': ['game', 'match', 'tournament', 'sports', 'football', 'basketball'],
+        'business': ['conference', 'meeting', 'workshop', 'seminar', 'business'],
+        'arts': ['exhibition', 'gallery', 'art', 'painting', 'sculpture'],
+        'food': ['food', 'restaurant', 'cooking', 'chef', 'cuisine'],
+        'tech': ['tech', 'technology', 'coding', 'programming', 'software']
+    };
+    
+    const lowerTitle = title.toLowerCase();
+    
+    for (const [category, keywords] of Object.entries(categories)) {
+        if (keywords.some(keyword => lowerTitle.includes(keyword))) {
+            return category.charAt(0).toUpperCase() + category.slice(1);
+        }
+    }
+    
+    return 'General';
+}
+
+// Modal functions
+function openEventModal(eventId) {
+    const event = events.find(e => e.event_id === eventId) || 
+                  userBookings.find(b => b.event_id === eventId);
+    
+    if (!event) return;
+    
+    currentEventModal = event;
+    
+    document.getElementById('modalEventTitle').textContent = event.event_title;
+    document.getElementById('modalEventDate').textContent = formatDate(event.event_date);
+    document.getElementById('modalEventTime').textContent = `${formatTime(event.event_start_time)} - ${formatTime(event.event_end_time)}`;
+    document.getElementById('modalEventLocation').textContent = event.event_location;
+    document.getElementById('modalEventSlots').textContent = `${event.total_slots} slots available`;
+    document.getElementById('modalEventDescription').textContent = event.event_description;
+    document.getElementById('modalEventImage').src = getEventImage(event.event_title);
+    document.getElementById('modalEventCategory').textContent = getEventCategory(event.event_title);
+    
+    const bookBtn = document.getElementById('modalBookBtn');
+    if (currentUser?.role === 'customer') {
+        bookBtn.style.display = 'flex';
+        bookBtn.onclick = () => bookEventFromModal();
+    } else {
+        bookBtn.style.display = 'none';
+    }
+    
+    showElement('eventModal');
+}
+
+function closeEventModal() {
+    hideElement('eventModal');
+    currentEventModal = null;
+}
+
+function bookEventFromModal() {
+    if (currentEventModal) {
+        bookEventHandler(currentEventModal.event_id);
+        closeEventModal();
+    }
 }
 
 // Event handlers
 async function bookEventHandler(eventId) {
     try {
         await bookEvent(eventId);
-        alert('Event booked successfully!');
+        showToast('Event booked successfully!', 'success');
         renderEvents();
         renderMyBookings();
     } catch (error) {
-        alert('Failed to book event: ' + error.message);
+        showToast('Failed to book event: ' + error.message, 'error');
     }
 }
 
+function toggleFavorite(eventId) {
+    const event = events.find(e => e.event_id === eventId);
+    if (!event) return;
+    
+    const existingIndex = favoriteEvents.findIndex(fav => fav.event_id === eventId);
+    
+    if (existingIndex > -1) {
+        favoriteEvents.splice(existingIndex, 1);
+        showToast('Removed from favorites', 'info');
+    } else {
+        favoriteEvents.push(event);
+        showToast('Added to favorites', 'success');
+    }
+    
+    renderEvents();
+    renderFavorites();
+}
+
 function editEventHandler(eventId) {
-    alert('Edit functionality would be implemented here');
+    showToast('Edit functionality will be implemented soon', 'info');
 }
 
 function deleteEventHandler(eventId) {
     if (confirm('Are you sure you want to delete this event?')) {
-        // You'll need to add delete endpoint to your proto files
-        alert('Delete functionality needs to be added to proto files');
+        showToast('Delete functionality will be implemented soon', 'info');
+    }
+}
+
+function viewTicket(bookingId) {
+    showToast('Ticket view will be implemented soon', 'info');
+}
+
+// Booking tabs
+function showBookingsTab(tab) {
+    const tabs = document.querySelectorAll('.tab-btn');
+    tabs.forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Filter bookings based on tab
+    let filteredBookings = userBookings;
+    
+    switch (tab) {
+        case 'upcoming':
+            filteredBookings = userBookings.filter(booking => 
+                new Date(booking.event_date) >= new Date()
+            );
+            break;
+        case 'past':
+            filteredBookings = userBookings.filter(booking => 
+                new Date(booking.event_date) < new Date()
+            );
+            break;
+        case 'cancelled':
+            filteredBookings = userBookings.filter(booking => 
+                booking.status === 'cancelled'
+            );
+            break;
+    }
+    
+    const bookingsGrid = document.getElementById('bookingsGrid');
+    renderEventsGrid(filteredBookings, bookingsGrid, 'booking');
+}
+
+// Stats update
+function updateStats() {
+    if (currentUser?.role === 'admin') {
+        document.getElementById('totalEvents').textContent = events.length;
+        document.getElementById('totalBookings').textContent = userBookings.length;
+        document.getElementById('totalRevenue').textContent = formatPrice(events.length * 50);
+        document.getElementById('avgRating').textContent = '4.8';
     }
 }
 
@@ -485,7 +807,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     
     hideError('loginError');
     loginBtn.disabled = true;
-    loginBtn.innerHTML = '<span>⏳</span> Signing In...';
+    loginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Signing In...</span>';
     
     try {
         await login(username, password);
@@ -493,7 +815,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
         showError('loginError', error.message);
     } finally {
         loginBtn.disabled = false;
-        loginBtn.innerHTML = '<span>🔑</span> Sign In';
+        loginBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i><span>Sign In</span>';
     }
 });
 
@@ -513,18 +835,18 @@ document.getElementById('signupForm').addEventListener('submit', async (e) => {
     
     hideError('signupError');
     signupBtn.disabled = true;
-    signupBtn.innerHTML = '<span>⏳</span> Creating Account...';
+    signupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Account...</span>';
     
     try {
         await register(userData);
-        alert('Account created successfully! Please sign in.');
+        showToast('Account created successfully! Please sign in.', 'success');
         showLogin();
         document.getElementById('signupForm').reset();
     } catch (error) {
         showError('signupError', error.message || 'Failed to create account');
     } finally {
         signupBtn.disabled = false;
-        signupBtn.innerHTML = '<span>👤</span> Create Account';
+        signupBtn.innerHTML = '<i class="fas fa-user-plus"></i><span>Create Account</span>';
     }
 });
 
@@ -547,27 +869,101 @@ document.getElementById('createEventForm').addEventListener('submit', async (e) 
     hideError('createEventError');
     hideElement('createEventSuccess');
     createBtn.disabled = true;
-    createBtn.innerHTML = '<span>⏳</span> Creating Event...';
+    createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Creating Event...</span>';
     
     try {
         await createEvent(eventData);
         showSuccess('createEventSuccess', 'Event created successfully!');
+        showToast('Event created successfully!', 'success');
         document.getElementById('createEventForm').reset();
         renderEvents();
     } catch (error) {
         showError('createEventError', error.message || 'Failed to create event');
     } finally {
         createBtn.disabled = false;
-        createBtn.innerHTML = '<span>✨</span> Create Event';
+        createBtn.innerHTML = '<i class="fas fa-plus-circle"></i><span>Create Event</span>';
     }
+});
+
+// Password strength checker
+document.getElementById('password')?.addEventListener('input', (e) => {
+    checkPasswordStrength(e.target.value);
+});
+
+// Search functionality
+document.getElementById('searchInput')?.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    if (searchTerm.length > 2) {
+        const filteredEvents = events.filter(event => 
+            event.event_title.toLowerCase().includes(searchTerm) ||
+            event.event_description.toLowerCase().includes(searchTerm) ||
+            event.event_location.toLowerCase().includes(searchTerm)
+        );
+        renderFilteredEvents(filteredEvents);
+    } else if (searchTerm.length === 0) {
+        renderCustomerEvents();
+    }
+});
+
+// Price range filter
+document.getElementById('priceRange')?.addEventListener('input', (e) => {
+    document.getElementById('priceValue').textContent = formatPrice(e.target.value);
 });
 
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Set minimum date for event creation to today
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('eventDate').setAttribute('min', today);
+    const eventDateInput = document.getElementById('eventDate');
+    if (eventDateInput) {
+        eventDateInput.setAttribute('min', today);
+    }
     
-    // Don't load events initially since user isn't logged in
-    console.log('Application initialized');
+    const dateInput = document.getElementById('dateInput');
+    if (dateInput) {
+        dateInput.setAttribute('min', today);
+    }
+    
+    // Initialize price range display
+    const priceRange = document.getElementById('priceRange');
+    const priceValue = document.getElementById('priceValue');
+    if (priceRange && priceValue) {
+        priceValue.textContent = formatPrice(priceRange.value);
+    }
+    
+    console.log('EventPass application initialized');
 });
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Close modal with Escape key
+    if (e.key === 'Escape') {
+        closeEventModal();
+        
+        // Close user dropdown
+        const dropdowns = document.querySelectorAll('.user-dropdown');
+        dropdowns.forEach(dropdown => dropdown.classList.add('hidden'));
+    }
+    
+    // Quick search with Ctrl/Cmd + K
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('searchInput') || document.getElementById('heroSearchInput');
+        if (searchInput) {
+            searchInput.focus();
+        }
+    }
+});
+
+// Service Worker Registration (for PWA capabilities)
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    });
+}
