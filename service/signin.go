@@ -2,26 +2,30 @@ package service
 
 import (
 	"context"
-	userpb "eventpass/proto/gen"
+	repository "eventpass/pgx"
+	"eventpass/proto/gen"
+	"log"
 
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (s *UserServiceServer) LoginUser(ctx context.Context, req *userpb.LoginRequest) (*userpb.LoginResponse, error) {
-
-	user, err := s.repo.GetUser(ctx, req.GetUserId())
+func (h *UserHandler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.LoginResponse, error) {
+	// Get user from database
+	user, err := repository.GetUserByUsername(ctx, req.Username)
 	if err != nil {
-		return nil, status.Errorf(codes.NotFound, "user not found")
+		log.Printf("Failed to get user: %v", err)
+		return nil, status.Errorf(codes.NotFound, "invalid credentials")
 	}
 
+	// Verify password
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password))
 	if err != nil {
-		return nil, status.Errorf(codes.Unauthenticated, "invalid password")
+		return nil, status.Errorf(codes.InvalidArgument, "invalid credentials")
 	}
 
-	return &userpb.LoginResponse{
-		Message: "Login Successful",
+	return &gen.LoginResponse{
+		Message: "Login successful",
 	}, nil
 }

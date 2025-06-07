@@ -2,12 +2,25 @@ syntax = "proto3";
 
 package user;
 
+import "google/api/annotations.proto";
+
 option go_package = "./gen/";
 
 service UserService {
   // Register a new user
-  rpc RegisterUser (RegisterRequest) returns (RegisterResponse);
-  rpc LoginUser (LoginRequest) returns (LoginResponse);
+  rpc RegisterUser (RegisterRequest) returns (RegisterResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/register"
+      body: "*"
+    };
+  }
+  
+  rpc Login (LoginRequest) returns (LoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/users/login"
+      body: "*"
+    };
+  }
 }
 
 message RegisterRequest {
@@ -23,6 +36,7 @@ message RegisterResponse {
   string id = 1;
   string message = 2;
 }
+
 message LoginRequest {
   string user_id = 1;
   string username = 2;

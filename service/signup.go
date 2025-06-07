@@ -2,36 +2,45 @@ package service
 
 import (
 	"context"
-	repository "eventpass/pgx"
-	userpb "eventpass/proto/gen"
+	"eventpass/proto/gen"
+	"eventpass/pgx"
+	"log"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
-type UserServiceServer struct {
-	userpb.UnimplementedUserServiceServer
-	repo repository.PostgresRepo
+type UserHandler struct {
+	gen.UnimplementedUserServiceServer
 }
 
-func (s *UserServiceServer) RegisterUser(ctx context.Context, req *userpb.RegisterRequest) (*userpb.RegisterResponse, error) {
-	// Hash the password
-	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		return nil, err
-	}
+func NewUserHandler() *UserHandler {
+	return &UserHandler{}
+}
 
-	// Generate a unique ID for the user
+func (h *UserHandler) RegisterUser(ctx context.Context, req *gen.RegisterRequest) (*gen.RegisterResponse, error) {
+	// Generate user ID
 	userID := uuid.New().String()
 
-	// Save user to the database
-	err = s.repo.CreateUser(ctx, userID, req.Email, string(hashed), req.FirstName, req.LastName, req.Username, req.Phone)
+	// Hash password
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return nil, err
+		log.Printf("Failed to hash password: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to process password")
 	}
 
-	return &userpb.RegisterResponse{
+	// Create user in database
+	err = repository.CreateUser(ctx, userID, req.FirstName, req.LastName, req.Username, string(hashedPassword), req.Phone, req.Email)
+	if err != nil {
+		log.Printf("Failed to create user: %v", err)
+		return nil, status.Errorf(codes.Internal, "failed to create user")
+	}
+
+	return &gen.RegisterResponse{
 		Id:      userID,
 		Message: "User registered successfully",
 	}, nil
 }
+

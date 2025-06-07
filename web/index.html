@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventPass - Event Management System</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>EventPass</h1>
+                <p>Welcome back! Please sign in to your account</p>
+            </div>
+            
+            <div class="user-type-selector">
+                <button class="user-type-btn active" onclick="setUserType('customer')">
+                    👤 Customer
+                </button>
+                <button class="user-type-btn" onclick="setUserType('admin')">
+                    👨‍💼 Admin
+                </button>
+            </div>
+            
+            <div id="loginError" class="error-message hidden"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">Username</label>
+                    <input type="text" id="loginUsername" placeholder="Enter your username" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your password" required>
+                </div>
+                
+                <button type="submit" class="btn" id="loginBtn">
+                    <span>🔑</span> Sign In
+                </button>
+            </form>
+            
+            <div class="auth-switch">
+                Don't have an account? <button type="button" onclick="showSignup()">Sign up</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signup Page -->
+    <div id="signupPage" class="auth-container hidden">
+        <div class="auth-card">
+            <div class="auth-header">
+                <h1>Join EventPass</h1>
+                <p>Create your customer account to book events</p>
+            </div>
+            
+            <div id="signupError" class="error-message hidden"></div>
+            
+            <form id="signupForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input type="text" id="firstName" placeholder="John" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" placeholder="Doe" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="johndoe" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="john@example.com" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="phone">Phone</label>
+                    <input type="tel" id="phone" placeholder="+1234567890" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required>
+                </div>
+                
+                <button type="submit" class="btn" id="signupBtn">
+                    <span>👤</span> Create Account
+                </button>
+            </form>
+            
+            <div class="auth-switch">
+                Already have an account? <button type="button" onclick="showLogin()">Sign in</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Dashboard -->
+    <div id="customerDashboard" class="dashboard hidden">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">EventPass</div>
+                <nav class="nav-menu">
+                    <button class="nav-item active" onclick="showCustomerDashboard()">
+                        <span>🏠</span> Dashboard
+                    </button>
+                    <button class="nav-item" onclick="showMyBookings()">
+                        <span>🎫</span> My Bookings
+                    </button>
+                </nav>
+                <div class="user-info">
+                    <span class="user-role customer">Customer</span>
+                    <span id="welcomeCustomer">Welcome, User</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="customerDashboardContent">
+                <div class="page-header">
+                    <h2>Available Events</h2>
+                    <p>Discover and book amazing events</p>
+                </div>
+
+                <div id="customerEventsContainer">
+                    <div class="events-grid" id="customerEventsGrid">
+                        <!-- Events will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="myBookingsContent" class="hidden">
+                <div class="page-header">
+                    <h2>My Bookings</h2>
+                    <p>View your booked events</p>
+                </div>
+
+                <div id="bookingsContainer">
+                    <div class="events-grid" id="bookingsGrid">
+                        <!-- Bookings will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Admin Dashboard -->
+    <div id="adminDashboard" class="dashboard hidden">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">EventPass Admin</div>
+                <nav class="nav-menu">
+                    <button class="nav-item active" onclick="showAdminDashboard()">
+                        <span>🏠</span> Dashboard
+                    </button>
+                    <button class="nav-item" onclick="showCreateEvent()">
+                        <span>➕</span> Create Event
+                    </button>
+                    <button class="nav-item" onclick="showManageEvents()">
+                        <span>⚙️</span> Manage Events
+                    </button>
+                </nav>
+                <div class="user-info">
+                    <span class="user-role">Admin</span>
+                    <span id="welcomeAdmin">Welcome, Admin</span>
+                    <button class="logout-btn" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div id="adminDashboardContent">
+                <div class="page-header">
+                    <h2>Admin Dashboard</h2>
+                    <p>Manage events and view analytics</p>
+                </div>
+
+                <div id="adminEventsContainer">
+                    <div class="events-grid" id="adminEventsGrid">
+                        <!-- Events will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <div id="createEventContent" class="hidden">
+                <div class="page-header">
+                    <h2>Create New Event</h2>
+                    <p>Fill in the details to create an amazing event</p>
+                </div>
+
+                <div class="create-event-form">
+                    <div id="createEventError" class="error-message hidden"></div>
+                    <div id="createEventSuccess" class="success-message hidden"></div>
+                    
+                    <form id="createEventForm">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="eventTitle">Event Title</label>
+                                <input type="text" id="eventTitle" placeholder="Amazing Event" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="eventLocation">Location</label>
+                                <input type="text" id="eventLocation" placeholder="New York, NY" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="eventDate">Date</label>
+                                <input type="date" id="eventDate" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="totalSlots">Total Slots</label>
+                                <input type="number" id="totalSlots" placeholder="100" min="1" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="startTime">Start Time</label>
+                                <input type="time" id="startTime" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="endTime">End Time</label>
+                                <input type="time" id="endTime" required>
+                            </div>
+                            
+                            <div class="form-group full-width">
+                                <label for="eventDescription">Description</label>
+                                <textarea id="eventDescription" placeholder="Describe your event..." required></textarea>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" class="btn" id="createEventBtn">
+                            <span>✨</span> Create Event
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div id="manageEventsContent" class="hidden">
+                <div class="page-header">
+                    <h2>Manage Events</h2>
+                    <p>Edit or delete existing events</p>
+                </div>
+
+                <div id="manageEventsContainer">
+                    <div class="events-grid" id="manageEventsGrid">
+                        <!-- Events will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

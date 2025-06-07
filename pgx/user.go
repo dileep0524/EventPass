@@ -1,3 +1,4 @@
+// pgx/user.go
 package repository
 
 import (
@@ -5,29 +6,71 @@ import (
 	"eventpass/model"
 	"eventpass/utils"
 
+	"github.com/jackc/pgx"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type PostgresRepo struct {
 	db *pgxpool.Pool
 }
+
 func NewUserRepo(db *pgxpool.Pool) *PostgresRepo {
 	return &PostgresRepo{db: db}
 }
 
-func(r *PostgresRepo) CreateUser(ctx context.Context, userID, email, password, firstName, lastName, username, phone string) error {
-	query := `INSERT INTO users (user_id, email, password, first_name, last_name, username, phone) VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	if _, err := utils.DB.Exec(ctx, query, userID, email, password, firstName, lastName, username, phone); err != nil {
+func CreateUser(ctx context.Context, userID, firstName, lastName, username, password, phone, email string) error {
+	query := `INSERT INTO users (user_id, first_name, last_name, username, password, phone, email, created_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())`
+	
+	if _, err := utils.DB.Exec(ctx, query, userID, firstName, lastName, username, password, phone, email); err != nil {
 		return err
 	}
 	return nil
 }
 
-func(r *PostgresRepo) GetUser(ctx context.Context, userID string) (model.User, error) {
+func GetUserByUsername(ctx context.Context, username string) (model.User, error) {
 	var user model.User
-	query := `SELECT user_id, email, password, first_name, last_name, username, phone, created_at FROM users WHERE user_id = $1`
-	if err := utils.DB.QueryRow(ctx, query, userID).Scan(&user.UserID, &user.Email,
-		&user.Password, &user.FirstName, &user.LastName, &user.Username, &user.Phone, &user.CreatedAt); err != nil {
+	query := `SELECT user_id, first_name, last_name, username, password, phone, email, created_at 
+			  FROM users WHERE username = $1`
+	
+	if err := utils.DB.QueryRow(ctx, query, username).Scan(
+		&user.UserID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Password,
+		&user.Phone,
+		&user.Email,
+		&user.CreatedAt,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return model.User{}, status.Errorf(codes.NotFound, "user not found")
+		}
+		return model.User{}, err
+	}
+	return user, nil
+}
+
+func GetUserByID(ctx context.Context, userID string) (model.User, error) {
+	var user model.User
+	query := `SELECT user_id, first_name, last_name, username, password, phone, email, created_at 
+			  FROM users WHERE user_id = $1`
+	
+	if err := utils.DB.QueryRow(ctx, query, userID).Scan(
+		&user.UserID,
+		&user.FirstName,
+		&user.LastName,
+		&user.Username,
+		&user.Password,
+		&user.Phone,
+		&user.Email,
+		&user.CreatedAt,
+	); err != nil {
+		if err == pgx.ErrNoRows {
+			return model.User{}, status.Errorf(codes.NotFound, "user not found")
+		}
 		return model.User{}, err
 	}
 	return user, nil
