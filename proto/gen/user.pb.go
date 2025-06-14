@@ -262,6 +262,102 @@ func (x *LoginResponse) GetMessage() string {
 	return ""
 }
 
+type AdminLoginRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AdminId       string                 `protobuf:"bytes,1,opt,name=admin_id,json=adminId,proto3" json:"admin_id,omitempty"`
+	Password      string                 `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminLoginRequest) Reset() {
+	*x = AdminLoginRequest{}
+	mi := &file_user_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminLoginRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminLoginRequest) ProtoMessage() {}
+
+func (x *AdminLoginRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminLoginRequest.ProtoReflect.Descriptor instead.
+func (*AdminLoginRequest) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *AdminLoginRequest) GetAdminId() string {
+	if x != nil {
+		return x.AdminId
+	}
+	return ""
+}
+
+func (x *AdminLoginRequest) GetPassword() string {
+	if x != nil {
+		return x.Password
+	}
+	return ""
+}
+
+type AdminLoginResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AdminLoginResponse) Reset() {
+	*x = AdminLoginResponse{}
+	mi := &file_user_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AdminLoginResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AdminLoginResponse) ProtoMessage() {}
+
+func (x *AdminLoginResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_user_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AdminLoginResponse.ProtoReflect.Descriptor instead.
+func (*AdminLoginResponse) Descriptor() ([]byte, []int) {
+	return file_user_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AdminLoginResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
 var File_user_proto protoreflect.FileDescriptor
 
 const file_user_proto_rawDesc = "" +
@@ -284,10 +380,17 @@ const file_user_proto_rawDesc = "" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\")\n" +
 	"\rLoginResponse\x12\x18\n" +
-	"\amessage\x18\x01 \x01(\tR\amessage2\xb9\x01\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\"J\n" +
+	"\x11AdminLoginRequest\x12\x19\n" +
+	"\badmin_id\x18\x01 \x01(\tR\aadminId\x12\x1a\n" +
+	"\bpassword\x18\x02 \x01(\tR\bpassword\".\n" +
+	"\x12AdminLoginResponse\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage2\x9b\x02\n" +
 	"\vUserService\x12\\\n" +
-	"\fRegisterUser\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/users/register\x12L\n" +
-	"\x05Login\x12\x12.user.LoginRequest\x1a\x13.user.LoginResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/users/loginB\bZ\x06./gen/b\x06proto3"
+	"\fRegisterUser\x12\x15.user.RegisterRequest\x1a\x16.user.RegisterResponse\"\x1d\x82\xd3\xe4\x93\x02\x17:\x01*\"\x12/v1/users/register\x12P\n" +
+	"\tUserLogin\x12\x12.user.LoginRequest\x1a\x13.user.LoginResponse\"\x1a\x82\xd3\xe4\x93\x02\x14:\x01*\"\x0f/v1/users/login\x12\\\n" +
+	"\n" +
+	"AdminLogin\x12\x17.user.AdminLoginRequest\x1a\x18.user.AdminLoginResponse\"\x1b\x82\xd3\xe4\x93\x02\x15:\x01*\"\x10/v1/admins/loginB\bZ\x06./gen/b\x06proto3"
 
 var (
 	file_user_proto_rawDescOnce sync.Once
@@ -301,20 +404,24 @@ func file_user_proto_rawDescGZIP() []byte {
 	return file_user_proto_rawDescData
 }
 
-var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_user_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
 var file_user_proto_goTypes = []any{
-	(*RegisterRequest)(nil),  // 0: user.RegisterRequest
-	(*RegisterResponse)(nil), // 1: user.RegisterResponse
-	(*LoginRequest)(nil),     // 2: user.LoginRequest
-	(*LoginResponse)(nil),    // 3: user.LoginResponse
+	(*RegisterRequest)(nil),    // 0: user.RegisterRequest
+	(*RegisterResponse)(nil),   // 1: user.RegisterResponse
+	(*LoginRequest)(nil),       // 2: user.LoginRequest
+	(*LoginResponse)(nil),      // 3: user.LoginResponse
+	(*AdminLoginRequest)(nil),  // 4: user.AdminLoginRequest
+	(*AdminLoginResponse)(nil), // 5: user.AdminLoginResponse
 }
 var file_user_proto_depIdxs = []int32{
 	0, // 0: user.UserService.RegisterUser:input_type -> user.RegisterRequest
-	2, // 1: user.UserService.Login:input_type -> user.LoginRequest
-	1, // 2: user.UserService.RegisterUser:output_type -> user.RegisterResponse
-	3, // 3: user.UserService.Login:output_type -> user.LoginResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
+	2, // 1: user.UserService.UserLogin:input_type -> user.LoginRequest
+	4, // 2: user.UserService.AdminLogin:input_type -> user.AdminLoginRequest
+	1, // 3: user.UserService.RegisterUser:output_type -> user.RegisterResponse
+	3, // 4: user.UserService.UserLogin:output_type -> user.LoginResponse
+	5, // 5: user.UserService.AdminLogin:output_type -> user.AdminLoginResponse
+	3, // [3:6] is the sub-list for method output_type
+	0, // [0:3] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -331,7 +438,7 @@ func file_user_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_user_proto_rawDesc), len(file_user_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
