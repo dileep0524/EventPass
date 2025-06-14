@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (h *UserHandler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.LoginResponse, error) {
+func (h *UserHandler) UserLogin(ctx context.Context, req *gen.LoginRequest) (*gen.LoginResponse, error) {
 	// Get user from database
 	user, err := repository.GetUserByUsername(ctx, req.Username)
 	if err != nil {
@@ -29,3 +29,16 @@ func (h *UserHandler) Login(ctx context.Context, req *gen.LoginRequest) (*gen.Lo
 		Message: "Login successful",
 	}, nil
 }
+// func (h *UserHandler) AdminLogin(ctx context.Context,req *gen.AdminLoginRequest) (*gen.AdminLoginResponse,error){
+
+// 	//getting the admin details from db
+// 	err:=repository.
+
+
+
+
+
+// 	return &gen.AdminLoginResponse{
+// 		Message: "Admin login successful",
+// 	}, nil
+// }

@@ -24,3 +24,13 @@ type Event struct {
 	CreatedBy         string `json:"created_by"`
 	CreatedAt         time.Time `json:"created_at"`
 }
+type Admin struct {
+	AdminID    string    `json:"admin_id"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Username  string    `json:"username"`
+	Password  string    `json:"password"`
+	Phone     string    `json:"phone"`
+	Email     string    `json:"email"`
+	CreatedAt time.Time `json:"created_at"`
+}

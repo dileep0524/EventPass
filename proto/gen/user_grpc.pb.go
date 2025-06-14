@@ -20,7 +20,8 @@ const _ = grpc.SupportPackageIsVersion9
 
 const (
 	UserService_RegisterUser_FullMethodName = "/user.UserService/RegisterUser"
-	UserService_Login_FullMethodName        = "/user.UserService/Login"
+	UserService_UserLogin_FullMethodName    = "/user.UserService/UserLogin"
+	UserService_AdminLogin_FullMethodName   = "/user.UserService/AdminLogin"
 )
 
 // UserServiceClient is the client API for UserService service.
@@ -29,7 +30,8 @@ const (
 type UserServiceClient interface {
 	// Register a new user
 	RegisterUser(ctx context.Context, in *RegisterRequest, opts ...grpc.CallOption) (*RegisterResponse, error)
-	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	UserLogin(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
+	AdminLogin(ctx context.Context, in *AdminLoginRequest, opts ...grpc.CallOption) (*AdminLoginResponse, error)
 }
 
 type userServiceClient struct {
@@ -50,10 +52,20 @@ func (c *userServiceClient) RegisterUser(ctx context.Context, in *RegisterReques
 	return out, nil
 }
 
-func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+func (c *userServiceClient) UserLogin(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LoginResponse)
-	err := c.cc.Invoke(ctx, UserService_Login_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, UserService_UserLogin_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *userServiceClient) AdminLogin(ctx context.Context, in *AdminLoginRequest, opts ...grpc.CallOption) (*AdminLoginResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AdminLoginResponse)
+	err := c.cc.Invoke(ctx, UserService_AdminLogin_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +78,8 @@ func (c *userServiceClient) Login(ctx context.Context, in *LoginRequest, opts ..
 type UserServiceServer interface {
 	// Register a new user
 	RegisterUser(context.Context, *RegisterRequest) (*RegisterResponse, error)
-	Login(context.Context, *LoginRequest) (*LoginResponse, error)
+	UserLogin(context.Context, *LoginRequest) (*LoginResponse, error)
+	AdminLogin(context.Context, *AdminLoginRequest) (*AdminLoginResponse, error)
 	mustEmbedUnimplementedUserServiceServer()
 }
 
@@ -80,8 +93,11 @@ type UnimplementedUserServiceServer struct{}
 func (UnimplementedUserServiceServer) RegisterUser(context.Context, *RegisterRequest) (*RegisterResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterUser not implemented")
 }
-func (UnimplementedUserServiceServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
+func (UnimplementedUserServiceServer) UserLogin(context.Context, *LoginRequest) (*LoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UserLogin not implemented")
+}
+func (UnimplementedUserServiceServer) AdminLogin(context.Context, *AdminLoginRequest) (*AdminLoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AdminLogin not implemented")
 }
 func (UnimplementedUserServiceServer) mustEmbedUnimplementedUserServiceServer() {}
 func (UnimplementedUserServiceServer) testEmbeddedByValue()                     {}
@@ -122,20 +138,38 @@ func _UserService_RegisterUser_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _UserService_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _UserService_UserLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LoginRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(UserServiceServer).Login(ctx, in)
+		return srv.(UserServiceServer).UserLogin(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: UserService_Login_FullMethodName,
+		FullMethod: UserService_UserLogin_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(UserServiceServer).Login(ctx, req.(*LoginRequest))
+		return srv.(UserServiceServer).UserLogin(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _UserService_AdminLogin_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AdminLoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(UserServiceServer).AdminLogin(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: UserService_AdminLogin_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(UserServiceServer).AdminLogin(ctx, req.(*AdminLoginRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -152,8 +186,12 @@ var UserService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _UserService_RegisterUser_Handler,
 		},
 		{
-			MethodName: "Login",
-			Handler:    _UserService_Login_Handler,
+			MethodName: "UserLogin",
+			Handler:    _UserService_UserLogin_Handler,
+		},
+		{
+			MethodName: "AdminLogin",
+			Handler:    _UserService_AdminLogin_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

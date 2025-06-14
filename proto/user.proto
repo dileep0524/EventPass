@@ -15,12 +15,19 @@ service UserService {
     };
   }
   
-  rpc Login (LoginRequest) returns (LoginResponse) {
+  rpc UserLogin (LoginRequest) returns (LoginResponse) {
     option (google.api.http) = {
       post: "/v1/users/login"
       body: "*"
     };
   }
+  rpc AdminLogin (AdminLoginRequest) returns (AdminLoginResponse) {
+    option (google.api.http) = {
+      post: "/v1/admins/login"
+      body: "*"
+    };
+  }
+  
 }
 
 message RegisterRequest {
@@ -45,4 +52,11 @@ message LoginRequest {
 
 message LoginResponse {
   string message = 1;
+}
+message AdminLoginRequest{
+	string admin_id=1;
+	string password=2;
+}
+message AdminLoginResponse{
+	string message=1;
 }
